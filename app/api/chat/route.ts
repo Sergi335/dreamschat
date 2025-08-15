@@ -1,4 +1,5 @@
 import { LLMConfig, getProviderById } from '@/lib/llm-providers';
+import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { OpenAI } from 'openai';
 
@@ -6,6 +7,16 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
+    // Verificar autenticación
+    const { userId } = await auth();
+    
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const { messages, config }: { messages: any[], config: LLMConfig } = await request.json();
 
     if (!config) {
