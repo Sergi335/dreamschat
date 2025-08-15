@@ -9,6 +9,7 @@ import { LLMConfig, getProviderById } from '@/lib/llm-providers';
 import { cn } from '@/lib/utils';
 import { Bot, Menu, MessageSquare, Plus, Send, Settings, User, X, Zap } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import Markdown from 'react-markdown';
 
 interface Message {
   id: string;
@@ -29,6 +30,8 @@ export default function ChatGPT() {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [shouldStopTyping, setShouldStopTyping] = useState(false);
+  const shouldStopRef = useRef(false); // Nueva referencia para control inmediato
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [apiKey, setApiKey] = useState<string>('');
   const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(false);
@@ -160,57 +163,95 @@ export default function ChatGPT() {
       timestamp: new Date(),
     };
 
-    // Update conversation title if it's the first user message
     const isFirstMessage = activeConversation.messages.filter(m => m.role === 'user').length === 0;
-    
-    // Add user message
-    setConversations(prev => prev.map(conv => 
-      conv.id === activeConversationId 
-        ? { 
-            ...conv, 
-            title: isFirstMessage ? generateTitle(userMessage.content) : conv.title,
-            messages: [...conv.messages, userMessage],
-            lastUpdated: new Date()
-          }
+
+    setConversations(prev => prev.map(conv =>
+      conv.id === activeConversationId
+        ? {
+          ...conv,
+          title: isFirstMessage ? generateTitle(userMessage.content) : conv.title,
+          messages: [...conv.messages, userMessage],
+          lastUpdated: new Date()
+        }
         : conv
     ));
 
     setInput('');
     setIsTyping(true);
+    setShouldStopTyping(false);
+    shouldStopRef.current = false; // Resetear la referencia
     setError('');
 
     try {
-      // Get all messages for context
       const allMessages = [...activeConversation.messages, userMessage];
       const aiResponseContent = await callLLM(allMessages);
 
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        content: aiResponseContent,
-        role: 'assistant',
-        timestamp: new Date(),
-      };
+      // Efecto de escritura con posibilidad de parar
+      let displayed = '';
+      for (let i = 0; i < aiResponseContent.length; i++) {
+        // Verificar si se debe detener usando la referencia
+        if (shouldStopRef.current) {
+          displayed = aiResponseContent; // Mostrar todo el contenido
+          break;
+        }
 
-      setConversations(prev => prev.map(conv => 
-        conv.id === activeConversationId 
-          ? { 
-              ...conv, 
-              messages: [...conv.messages, aiResponse],
+        displayed += aiResponseContent[i];
+        // Usar una función para actualizar el mensaje parcialmente
+        setConversations(prev => prev.map(conv =>
+          conv.id === activeConversationId
+            ? {
+              ...conv,
+              messages: [
+                ...conv.messages.filter(m => m.role !== 'assistant' || m.id !== 'typing'),
+                {
+                  id: 'typing',
+                  content: displayed,
+                  role: 'assistant',
+                  timestamp: new Date(),
+                }
+              ],
               lastUpdated: new Date()
             }
+            : conv
+        ));
+        await new Promise(res => setTimeout(res, 4)); // velocidad de escritura
+      }
+
+      // Al terminar, reemplaza el mensaje 'typing' por el definitivo con id único
+      setConversations(prev => prev.map(conv =>
+        conv.id === activeConversationId
+          ? {
+            ...conv,
+            messages: [
+              ...conv.messages.filter(m => m.role !== 'assistant' || m.id !== 'typing'),
+              {
+                id: (Date.now() + 1).toString(),
+                content: displayed, // Usar el contenido mostrado (completo o parcial)
+                role: 'assistant',
+                timestamp: new Date(),
+              }
+            ],
+            lastUpdated: new Date()
+          }
           : conv
       ));
     } catch (error: any) {
       console.error('Error calling LLM:', error);
       setError(error.message || 'Failed to get response from AI');
-      
-      // If it's an API key error, open the config dialog
       if (error.message.includes('API key') || error.message.includes('Invalid')) {
         setLlmConfigDialogOpen(true);
       }
     } finally {
       setIsTyping(false);
+      setShouldStopTyping(false);
+      shouldStopRef.current = false; // Resetear la referencia
     }
+  };
+
+  // Función para detener el efecto de escritura
+  const handleStopTyping = () => {
+    setShouldStopTyping(true);
+    shouldStopRef.current = true; // Activar la referencia inmediatamente
   };
 
   const createNewConversation = () => {
@@ -429,18 +470,26 @@ export default function ChatGPT() {
                 )}
               >
                 {message.role === 'assistant' && (
-                  <div className="flex-shrink-0 w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
+                  <div className="flex-shrink-0 w-8 h-8 bg-green-600 rounded-full flex items-center justify-center mt-[5px]">
                     <Bot className="h-4 w-4 text-white" />
                   </div>
                 )}
                 
                 <div className={cn(
-                  "max-w-xs sm:max-w-md lg:max-w-2xl px-4 py-3 rounded-2xl",
+                  "max-w-xs sm:max-w-md lg:max-w-[768px] px-4 py-3 rounded-2xl",
                   message.role === 'user' 
                     ? "bg-blue-600 text-white ml-auto" 
-                    : "bg-gray-800 text-gray-100"
+                    : "text-gray-300"
                 )}>
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                  {message.role === 'assistant' ? (
+                    <div className="text-base leading-[28px] [&>ul]:list-disc [&>ul]:ml-6 [&>ul]:mb-4 [&>li]:mb-2 [&>strong]:font-bold [&>p]:mb-4">
+                      <Markdown>
+                        {message.content}
+                      </Markdown>
+                    </div>
+                  ) : (
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                  )}
                   <p className="text-xs opacity-60 mt-2">
                     {formatTime(message.timestamp)}
                   </p>
@@ -501,18 +550,31 @@ export default function ChatGPT() {
                   disabled={isTyping || !hasValidConfig}
                 />
               </div>
-              <Button
-                onClick={handleSendMessage}
-                disabled={!input.trim() || isTyping || !hasValidConfig}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
+              
+              {/* Botón Stop (solo visible durante typing) */}
+              {isTyping ? (
+                <Button
+                  onClick={handleStopTyping}
+                  className="bg-red-600 hover:bg-red-700 text-white px-4"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={!input.trim() || isTyping || !hasValidConfig}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              )}
             </div>
             <p className="text-xs text-gray-500 mt-2 text-center">
-              {hasValidConfig 
-                ? "Press Enter to send, Shift + Enter for new line" 
-                : `Configure your ${currentProvider?.name || 'AI'} provider to start chatting`
+              {isTyping 
+                ? "Click Stop to interrupt typing" 
+                : hasValidConfig 
+                  ? "Press Enter to send, Shift + Enter for new line" 
+                  : `Configure your ${currentProvider?.name || 'AI'} provider to start chatting`
               }
             </p>
           </div>
