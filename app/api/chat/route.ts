@@ -42,20 +42,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Usar API key desde variables de entorno
+    const apiKey = process.env.LLM_API_KEY;
+    
     // Validar API key si es requerida
-    if (provider.requiresApiKey && !config.apiKey) {
+    if (provider.requiresApiKey && !apiKey) {
       return NextResponse.json(
-        { error: `API key is required for ${provider.name}` },
+        { error: `API key is required for ${provider.name}. Please set LLM_API_KEY environment variable.` },
         { status: 400 }
       );
     }
 
     // Configurar el cliente OpenAI con el endpoint personalizado
     const baseURL = config.customBaseURL || provider.baseURL;
-    const apiKey = config.apiKey || 'no-key-required';
+    const envApiKey = process.env.LLM_API_KEY || 'no-key-required';
 
     const client = new OpenAI({
-      apiKey: apiKey,
+      apiKey: envApiKey,
       baseURL: baseURL,
     });
 

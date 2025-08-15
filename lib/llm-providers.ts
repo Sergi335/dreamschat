@@ -10,6 +10,14 @@ export interface LLMProvider {
   supportsStreaming?: boolean;
 }
 
+export interface LLMConfig {
+  providerId: string;
+  model: string;
+  temperature: number;
+  maxTokens: number;
+  customBaseURL?: string;
+}
+
 export const LLM_PROVIDERS: Record<string, LLMProvider> = {
   openai: {
     id: 'openai',
@@ -127,15 +135,6 @@ export const LLM_PROVIDERS: Record<string, LLMProvider> = {
     supportsStreaming: true,
   }
 };
-
-export interface LLMConfig {
-  providerId: string;
-  model: string;
-  apiKey?: string;
-  customBaseURL?: string;
-  temperature?: number;
-  maxTokens?: number;
-}
 
 export const getProviderById = (id: string): LLMProvider | undefined => {
   return LLM_PROVIDERS[id];

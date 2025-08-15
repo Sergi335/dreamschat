@@ -1,147 +1,21 @@
 "use client";
 
-import { ApiKeyDialog } from '@/components/api-key-dialog';
-import { LLMConfigDialog } from '@/components/llm-config-dialog';
+import { MarkdownRenderer } from '@/components/markdown-renderer';
+import { MessageComponent } from '@/components/message-component';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useConversations } from '@/hooks/use-conversations';
-import { LLMConfig, getProviderById } from '@/lib/llm-providers';
+import { getProviderById } from '@/lib/llm-providers';
 import { cn } from '@/lib/utils';
 import { useClerk, useUser } from '@clerk/nextjs';
-import { Bot, LogOut, Menu, MessageSquare, Plus, Send, Settings, User, X, Zap } from 'lucide-react';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import Markdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { Bot, LogOut, Menu, MessageSquare, Plus, Send, User, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-// Componente memoizado para el Markdown
-const MarkdownRenderer = memo(({ content }: { content: string }) => (
-  <Markdown
-    remarkPlugins={[remarkGfm]}
-    components={{
-      p: ({ children }) => <p style={{ margin: '0.5rem 0' }}>{children}</p>,
-      ul: ({ children }) => <ul style={{ margin: '0.5rem 0', paddingLeft: '1.5rem' }}>{children}</ul>,
-      ol: ({ children }) => <ol style={{ margin: '0.5rem 0', paddingLeft: '1.5rem' }}>{children}</ol>,
-      li: ({ children }) => <li style={{ margin: '0.25rem 0' }}>{children}</li>,
-      table: ({ children }) => (
-        <table style={{ 
-          borderCollapse: 'collapse', 
-          width: '100%', 
-          margin: '1rem 0',
-          border: '1px solid #374151'
-        }}>
-          {children}
-        </table>
-      ),
-      th: ({ children }) => (
-        <th style={{ 
-          border: '1px solid #374151', 
-          padding: '0.5rem',
-          backgroundColor: '#374151',
-          textAlign: 'left'
-        }}>
-          {children}
-        </th>
-      ),
-      td: ({ children }) => (
-        <td style={{ 
-          border: '1px solid #374151', 
-          padding: '0.5rem'
-        }}>
-          {children}
-        </td>
-      ),
-      code: ({ children, className }) => {
-        const isInline = !className;
-        return isInline ? (
-          <code style={{ 
-            backgroundColor: '#374151', 
-            padding: '0.125rem 0.25rem', 
-            borderRadius: '0.25rem',
-            fontSize: '0.875rem'
-          }}>
-            {children}
-          </code>
-        ) : (
-          <pre style={{ 
-            backgroundColor: '#1f2937', 
-            padding: '1rem', 
-            borderRadius: '0.5rem',
-            overflow: 'auto',
-            margin: '0.5rem 0'
-          }}>
-            <code>{children}</code>
-          </pre>
-        );
-      },
-      blockquote: ({ children }) => (
-        <blockquote style={{ 
-          borderLeft: '4px solid #6b7280', 
-          paddingLeft: '1rem', 
-          margin: '0.5rem 0',
-          fontStyle: 'italic'
-        }}>
-          {children}
-        </blockquote>
-      ),
-    }}
-  >
-    {content}
-  </Markdown>
-));
 
-MarkdownRenderer.displayName = 'MarkdownRenderer';
 
-// Componente memoizado para mensajes
-const MessageComponent = memo(({ 
-  message, 
-  isUser, 
-  userImage, 
-  providerName, 
-  formatTime 
-}: {
-  message: any;
-  isUser: boolean;
-  userImage?: string;
-  providerName?: string;
-  formatTime: (date: Date) => string;
-}) => (
-  <div className={cn(
-    "flex gap-3 rounded-lg p-4",
-    isUser ? "bg-blue-900/20 ml-8" : "bg-gray-800/50 mr-8"
-  )}>
-    <Avatar className="h-8 w-8 shrink-0">
-      {isUser ? (
-        <AvatarImage src={userImage} />
-      ) : (
-        <AvatarFallback className="bg-green-900">
-          <Bot className="h-4 w-4" />
-        </AvatarFallback>
-      )}
-    </Avatar>
-    <div className="flex-1 space-y-2">
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium">
-          {isUser ? 'Tú' : providerName || 'Asistente'}
-        </span>
-        <span className="text-xs text-gray-400">
-          {formatTime(new Date(message.timestamp))}
-        </span>
-      </div>
-      <div className="prose prose-invert max-w-none">
-        {isUser ? (
-          <p style={{ margin: 0 }}>{message.content}</p>
-        ) : (
-          <MarkdownRenderer content={message.content} />
-        )}
-      </div>
-    </div>
-  </div>
-));
 
-MessageComponent.displayName = 'MessageComponent';
 
 interface Message {
   id: string;
@@ -174,49 +48,19 @@ export default function ChatGPT() {
   const [shouldStopTyping, setShouldStopTyping] = useState(false);
   const shouldStopRef = useRef(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [apiKey, setApiKey] = useState<string>('');
-  const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(false);
-  const [llmConfigDialogOpen, setLlmConfigDialogOpen] = useState(false);
-  const [llmConfig, setLlmConfig] = useState<LLMConfig>({
-    providerId: 'openai',
-    model: 'gpt-3.5-turbo',
-    apiKey: '',
-    temperature: 0.7,
-    maxTokens: 1000,
-  });
   const [error, setError] = useState<string>('');
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Load configuration from localStorage on mount
-  useEffect(() => {
-    const savedApiKey = localStorage.getItem('openai-api-key');
-    const savedConfig = localStorage.getItem('llm-config');
-    
-    if (savedConfig) {
-      try {
-        const parsedConfig = JSON.parse(savedConfig);
-        setLlmConfig(parsedConfig);
-        setApiKey(parsedConfig.apiKey || '');
-      } catch (error) {
-        console.error('Error parsing saved config:', error);
-      }
-    } else if (savedApiKey) {
-      const migratedConfig: LLMConfig = {
-        providerId: 'openai',
-        model: 'gpt-3.5-turbo',
-        apiKey: savedApiKey,
-        temperature: 0.7,
-        maxTokens: 1000,
-      };
-      setLlmConfig(migratedConfig);
-      setApiKey(savedApiKey);
-      localStorage.setItem('llm-config', JSON.stringify(migratedConfig));
-    } else {
-      setLlmConfigDialogOpen(true);
-    }
-  }, []);
+  // Load configuration from environment variables
+  const llmConfig = useMemo(() => ({
+    providerId: process.env.NEXT_PUBLIC_LLM_PROVIDER || 'openai',
+    model: process.env.NEXT_PUBLIC_LLM_MODEL || 'gpt-3.5-turbo',
+    temperature: parseFloat(process.env.NEXT_PUBLIC_LLM_TEMPERATURE || '0.7'),
+    maxTokens: parseInt(process.env.NEXT_PUBLIC_LLM_MAX_TOKENS || '1000'),
+    customBaseURL: process.env.NEXT_PUBLIC_LLM_BASE_URL || undefined,
+  }), []);
 
   // Create initial conversation if none exist and user is loaded
   useEffect(() => {
@@ -243,22 +87,6 @@ export default function ChatGPT() {
     scrollToBottomThrottled();
   }, [activeConversation?.messages?.length, isTyping, scrollToBottomThrottled]);
 
-  const handleApiKeySubmit = useCallback((newApiKey: string) => {
-    setApiKey(newApiKey);
-    const updatedConfig = { ...llmConfig, apiKey: newApiKey };
-    setLlmConfig(updatedConfig);
-    localStorage.setItem('openai-api-key', newApiKey);
-    localStorage.setItem('llm-config', JSON.stringify(updatedConfig));
-    setError('');
-  }, [llmConfig]);
-
-  const handleLlmConfigSubmit = useCallback((newConfig: LLMConfig) => {
-    setLlmConfig(newConfig);
-    setApiKey(newConfig.apiKey || '');
-    localStorage.setItem('llm-config', JSON.stringify(newConfig));
-    setError('');
-  }, []);
-
   const generateTitle = useCallback((firstMessage: string): string => {
     return firstMessage.length > 30 
       ? firstMessage.substring(0, 30) + '...'
@@ -266,10 +94,6 @@ export default function ChatGPT() {
   }, []);
 
   const callLLM = useCallback(async (messages: Message[]): Promise<string> => {
-    if (currentProvider?.requiresApiKey && !llmConfig.apiKey) {
-      throw new Error('API key not provided');
-    }
-
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: {
@@ -291,15 +115,10 @@ export default function ChatGPT() {
     }
 
     return data.message.content;
-  }, [currentProvider, llmConfig]);
+  }, [llmConfig]);
 
   const handleSendMessage = useCallback(async () => {
     if (!input.trim() || !activeConversation || isTyping) return;
-
-    if (currentProvider?.requiresApiKey && !llmConfig.apiKey) {
-      setLlmConfigDialogOpen(true);
-      return;
-    }
 
     const userMessage = {
       content: input.trim(),
@@ -366,16 +185,11 @@ export default function ChatGPT() {
     } catch (error: any) {
       console.error('Error calling LLM:', error);
       setError(error.message || 'Failed to get response from AI');
-      if (error.message.includes('API key') || error.message.includes('Invalid')) {
-        setLlmConfigDialogOpen(true);
-      }
     } finally {
       setIsTyping(false);
-      setTypingMessage(''); // Limpiar mensaje de escritura
-      setShouldStopTyping(false);
-      shouldStopRef.current = false;
+      inputRef.current?.focus();
     }
-  }, [input, activeConversation, isTyping, currentProvider, llmConfig, activeConversationId, addMessage, updateConversationTitle, callLLM, generateTitle]);
+  }, [input, activeConversation, isTyping, activeConversationId, addMessage, updateConversationTitle, callLLM, generateTitle]);
 
   // Función para detener el efecto de escritura
   const handleStopTyping = useCallback(() => {
@@ -396,8 +210,6 @@ export default function ChatGPT() {
       hour12: true 
     });
   }, []);
-
-  const hasValidConfig = currentProvider && (!currentProvider.requiresApiKey || llmConfig.apiKey);
 
   // Mostrar loading mientras Clerk se inicializa
   if (!isLoaded) {
@@ -510,23 +322,9 @@ export default function ChatGPT() {
                 </p>
               </div>
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <Settings className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setLlmConfigDialogOpen(true)}>
-                  <Zap className="h-4 w-4 mr-2" />
-                  Configurar LLM
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => signOut()}>
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Cerrar sesión
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button variant="ghost" size="sm" onClick={() => signOut()}>
+              <LogOut className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>
@@ -555,17 +353,6 @@ export default function ChatGPT() {
               )}
             </div>
           </div>
-          
-          {!hasValidConfig && (
-            <Button 
-              onClick={() => setLlmConfigDialogOpen(true)}
-              variant="outline"
-              size="sm"
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Configurar
-            </Button>
-          )}
         </div>
 
         {/* Messages */}
@@ -646,12 +433,8 @@ export default function ChatGPT() {
                       handleSendMessage();
                     }
                   }}
-                  placeholder={
-                    hasValidConfig 
-                      ? "Escribe tu mensaje..." 
-                      : "Configura tu API key primero..."
-                  }
-                  disabled={!hasValidConfig || isTyping}
+                  placeholder="Escribe tu mensaje..."
+                  disabled={isTyping}
                   className="flex-1 bg-gray-800 border-gray-600 focus:border-blue-500"
                 />
                 
@@ -666,7 +449,7 @@ export default function ChatGPT() {
                 ) : (
                   <Button 
                     onClick={handleSendMessage}
-                    disabled={!input.trim() || !hasValidConfig}
+                    disabled={!input.trim()}
                     className="px-3"
                   >
                     <Send className="h-4 w-4" />
@@ -677,21 +460,6 @@ export default function ChatGPT() {
           </div>
         )}
       </div>
-
-      {/* Dialogs */}
-      <ApiKeyDialog
-        open={apiKeyDialogOpen}
-        onOpenChange={setApiKeyDialogOpen}
-        onApiKeySubmit={handleApiKeySubmit}
-        currentApiKey={apiKey}
-      />
-      
-      <LLMConfigDialog
-        open={llmConfigDialogOpen}
-        onOpenChange={setLlmConfigDialogOpen}
-        onConfigSubmit={handleLlmConfigSubmit}
-        currentConfig={llmConfig}
-      />
     </div>
   );
 }
