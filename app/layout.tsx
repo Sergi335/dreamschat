@@ -21,7 +21,7 @@ export default function RootLayout ({
     <ClerkProvider>
       <html lang="en" className="dark">
         <ConversationsProvider>
-          <body className={inter.className}>{children}</body>
+          <body className={`${inter.className} bg-neutral-900 text-neutral-100 font-sans leading-relaxed selection:bg-neutral-700/60`}>{children}</body>
         </ConversationsProvider>
       </html>
     </ClerkProvider>

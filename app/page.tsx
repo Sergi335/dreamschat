@@ -1,381 +1,206 @@
-'use client'
+// import Link from 'next/link'
+import { ArrowRight, Brain, Check, ChevronDown, Clock, Menu, Send, Wand2 } from 'lucide-react'
 
-import DashboardHeader from '@/components/dashboard-header'
-import { MessageComponent } from '@/components/message-component'
-import { Sidebar } from '@/components/sidebar'
-import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { useConversations } from '@/context/conversations-context'
-import { getProviderById } from '@/lib/llm-providers'
-import { useUser } from '@clerk/nextjs'
-import { Bot, MessageSquare, Send, X } from 'lucide-react'
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-
-interface Message {
-  id: string;
-  content: string;
-  role: 'user' | 'assistant';
-  timestamp: Date;
-}
-export interface llmConfig {
-  providerId: string;
-  model: string;
-  temperature: number;
-  maxTokens: number;
-  customBaseURL?: string;
-}
-
-export default function ChatGPT () {
-  // Clerk hooks para autenticación
-  const { user, isLoaded, isSignedIn } = useUser()
-
-  // Hook para gestión de conversaciones con persistencia
-  const {
-    conversations,
-    activeConversationId,
-    createConversation,
-    updateConversationTitle,
-    addMessage,
-    isLoading
-  } = useConversations()
-  console.log('🚀 ~ ChatGPT ~ activeConversationId:', activeConversationId)
-
-  const [input, setInput] = useState('')
-  const [isTyping, setIsTyping] = useState(false)
-  const [typingMessage, setTypingMessage] = useState('') // Estado para el mensaje en escritura
-  const shouldStopRef = useRef(false)
-  // const [sidebarOpen, setSidebarOpen] = useState(false) <-- contexto?
-  const [error, setError] = useState<string>('') // <-- contexto?
-
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  // Load configuration from environment variables
-  const llmConfig = useMemo(() => ({
-    providerId: process.env.NEXT_PUBLIC_LLM_PROVIDER || 'openai',
-    model: process.env.NEXT_PUBLIC_LLM_MODEL || 'gpt-3.5-turbo',
-    temperature: parseFloat(process.env.NEXT_PUBLIC_LLM_TEMPERATURE || '0.7'),
-    maxTokens: parseInt(process.env.NEXT_PUBLIC_LLM_MAX_TOKENS || '1000'),
-    customBaseURL: process.env.NEXT_PUBLIC_LLM_BASE_URL || undefined
-  }), [])
-
-  // Create initial conversation if none exist and user is loaded
-  useEffect(() => {
-    if (isLoaded && isSignedIn && conversations.length === 0 && !isLoading) {
-      createConversation('Nueva conversación')
-    }
-  }, [isLoaded, isSignedIn, conversations.length, isLoading, createConversation])
-
-  const activeConversation = conversations.find(c => c.id === activeConversationId)
-  const currentProvider = getProviderById(llmConfig.providerId)
-
-  // Optimizar scroll con throttle
-  const scrollToBottomThrottled = useMemo(() => {
-    let timeoutId: ReturnType<typeof setTimeout>
-    return () => {
-      clearTimeout(timeoutId)
-      timeoutId = setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-      }, 100)
-    }
-  }, [])
-
-  useEffect(() => {
-    scrollToBottomThrottled()
-  }, [
-    activeConversation?.messages?.length,
-    isTyping,
-    typingMessage, // <-- Añade esta dependencia
-    scrollToBottomThrottled
-  ])
-
-  const generateTitle = useCallback((firstMessage: string): string => {
-    return firstMessage.length > 30
-      ? firstMessage.substring(0, 30) + '...'
-      : firstMessage
-  }, [])
-
-  const callLLM = useCallback(async (messages: Message[]): Promise<string> => {
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        messages: messages.map(msg => ({
-          role: msg.role,
-          content: msg.content
-        })),
-        config: llmConfig
-      })
-    })
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to get response')
-    }
-
-    return data.message.content
-  }, [llmConfig])
-
-  const handleSendMessage = useCallback(async () => {
-    if (!input.trim() || !activeConversation || isTyping) return
-
-    const userMessage = {
-      content: input.trim(),
-      role: 'user' as const
-    }
-
-    const isFirstMessage = activeConversation.messages.filter(m => m.role === 'user').length === 0
-
-    try {
-      // Agregar mensaje del usuario a la base de datos
-      await addMessage(activeConversationId!, userMessage.role, userMessage.content)
-
-      // Actualizar título si es el primer mensaje
-      if (isFirstMessage) {
-        await updateConversationTitle(activeConversationId!, generateTitle(userMessage.content))
-      }
-
-      setInput('')
-      setIsTyping(true)
-      setTypingMessage('') // Limpiar mensaje de escritura anterior
-      shouldStopRef.current = false
-      setError('')
-
-      const allMessages = [...activeConversation.messages, {
-        id: 'temp',
-        content: userMessage.content,
-        role: userMessage.role,
-        timestamp: new Date()
-      }]
-
-      const aiResponseContent = await callLLM(allMessages)
-
-      // Efecto de escritura optimizado
-      let displayed = ''
-      const charsPerStep = 12 // Más caracteres para tablas
-      let updateCounter = 0
-
-      for (let i = 0; i < aiResponseContent.length; i += charsPerStep) {
-        if (shouldStopRef.current) {
-          displayed = aiResponseContent // Mostrar todo si se detiene
-          break
-        }
-
-        displayed += aiResponseContent.slice(i, i + charsPerStep)
-        updateCounter++
-
-        // Actualizar UI solo cada 3 iteraciones para reducir re-renders
-        if (updateCounter % 3 === 0 || i + charsPerStep >= aiResponseContent.length) {
-          setTypingMessage(displayed)
-          await new Promise(resolve => setTimeout(resolve, 10)) // Ligeramente más lento pero más suave
-        }
-      }
-
-      // Asegurar que se muestra el contenido final
-      if (displayed !== aiResponseContent) {
-        setTypingMessage(aiResponseContent)
-        await new Promise(resolve => setTimeout(resolve, 50))
-      }
-
-      // Guardar el mensaje final en la base de datos
-      await addMessage(activeConversationId!, 'assistant', displayed)
-    } catch (error: unknown) {
-      console.error('Error calling LLM:', error)
-      setError(error instanceof Error ? error.message : 'Failed to get response from AI')
-    } finally {
-      setIsTyping(false)
-      inputRef.current?.focus()
-    }
-  }, [input, activeConversation, isTyping, activeConversationId, addMessage, updateConversationTitle, callLLM, generateTitle])
-
-  // Función para detener el efecto de escritura
-  const handleStopTyping = useCallback(() => {
-    shouldStopRef.current = true
-  }, [])
-
-  // const handleNewConversation = useCallback(async () => {
-  //   try {
-  //     const newConversationId = await createConversation('Nueva conversación')
-  //     if (newConversationId) {
-  //       setActiveConversationId(newConversationId)
-  //     }
-  //     setSidebarOpen(false)
-  //     setError('')
-
-  //     // Enfocar el input después de crear la conversación
-  //     setTimeout(() => {
-  //       inputRef.current?.focus()
-  //     }, 100)
-  //   } catch (error) {
-  //     console.error('Error creating conversation:', error)
-  //     setError('Error al crear nueva conversación')
-  //   }
-  // }, [createConversation, setActiveConversationId])
-
-  const formatTime = useCallback((date: Date) => {
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    })
-  }, [])
-
-  // Mostrar loading mientras Clerk se inicializa
-  if (!isLoaded) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-black text-white">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
-          <p>Cargando...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // Mostrar página de inicio de sesión si no está autenticado
-  if (!isSignedIn) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-black text-white">
-        <div className="text-center max-w-md mx-auto p-8">
-          <Bot className="h-16 w-16 mx-auto mb-6 text-blue-400" />
-          <h1 className="text-3xl font-bold mb-4">Dream Reader</h1>
-          <p className="text-gray-300 mb-8">
-            Tu asistente de IA personalizado con múltiples modelos de lenguaje
-          </p>
-          <div className="space-y-4">
-            <Button
-              onClick={() => { window.location.href = '/sign-in' }}
-              className="w-full bg-blue-600 hover:bg-blue-700"
-            >
-              Iniciar Sesión
-            </Button>
-            <Button
-              onClick={() => { window.location.href = '/sign-up' }}
-              variant="outline"
-              className="w-full"
-            >
-              Registrarse
-            </Button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
+export default function Page () {
   return (
-    <div className="flex h-screen bg-black text-white">
-      <Sidebar ref={inputRef} setError={setError} />
-      {/* Main content */}
-      <main className="flex-1 flex flex-col">
-        {/* Header */}
-        <DashboardHeader
-          activeConversation={activeConversation}
-          currentProvider={currentProvider}
-          llmConfig={llmConfig}
-        />
+    <>
+      {/* <!-- Top Navigation --> */}
+      <header className="w-full backdrop-blur supports-backdrop-blur:bg-neutral-800/60 bg-neutral-900/80 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-4 flex items-center justify-between">
+          <a href="/dashboard" className="text-lg font-semibold tracking-tight flex items-center space-x-1">
+            <span className="border border-neutral-700 rounded-md px-2 py-0.5">DR</span>
+            <span className="sr-only">Dreamscape</span>
+          </a>
 
-        {/* Messages */}
-        <ScrollArea className="flex-1 p-4">
-          {activeConversation
-            ? (
-              <div className="space-y-4 max-w-4xl mx-auto">
-                {[
-                  ...activeConversation.messages,
-                  ...(isTyping
-                    ? [{
-                      id: 'typing',
-                      content: typingMessage
-                        ? typingMessage + '|'
-                        : 'Pensando...',
-                      role: 'assistant',
-                      timestamp: new Date()
-                    }]
-                    : [])
-                ].map((message) => (
-                  <MessageComponent
-                    key={message.id}
-                    message={message}
-                    isUser={message.role === 'user'}
-                    userImage={user?.imageUrl}
-                    providerName={currentProvider?.name}
-                    formatTime={formatTime}
-                  />
-                ))}
-                <div ref={messagesEndRef} />
-              </div>
-            )
-            : (
-              <div className="flex items-center justify-center h-full text-gray-400">
-                <div className="text-center">
-                  <MessageSquare className="h-12 w-12 mx-auto mb-4" />
-                  <p>Selecciona una conversación para comenzar</p>
-                </div>
-              </div>
-            )}
-        </ScrollArea>
+          <nav className="hidden md:flex items-center space-x-8 text-sm">
+            <a href="#features" className="hover:text-white transition-colors">Features</a>
+            <a href="#science" className="hover:text-white transition-colors">Science</a>
+            <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
+            <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
+          </nav>
 
-        {/* Input */}
-        {activeConversation && (
-          <div className="p-4 border-t border-gray-700">
-            {error && (
-              <div className="mb-4 p-3 bg-red-900/20 border border-red-700 rounded-lg text-red-200">
-                {error}
-              </div>
-            )}
+          <div className="flex items-center space-x-4">
+            <a href="/dashboard" className="hidden sm:inline-block text-xs font-medium px-4 py-2 rounded-md ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all">Log in</a>
+            <a href="/dashboard" className="text-xs font-medium px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 transition-colors">Get Started</a>
 
-            <div className="max-w-4xl mx-auto">
-              <div className="flex gap-2">
-                <div
-                  ref={inputRef as React.RefObject<HTMLDivElement>}
-                  contentEditable={!isTyping}
-                  suppressContentEditableWarning
-                  className="flex-1 min-h-[2.5rem] max-h-40 overflow-y-auto bg-gray-800 border border-gray-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500"
-                  style={{
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word'
-                  }}
-                  placeholder="Escribe tu mensaje..."
-                  aria-label="Prompt"
-                  spellCheck={true}
-                  onInput={e => setInput((e.target as HTMLDivElement).textContent || '')}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault()
-                      handleSendMessage()
-                    }
-                  }}
-                  tabIndex={0}
-                >
-                  {input}
-                </div>
-
-                {isTyping
-                  ? (
-                    <Button
-                      onClick={handleStopTyping}
-                      variant="outline"
-                      className="px-3"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )
-                  : (
-                    <Button
-                      onClick={handleSendMessage}
-                      disabled={!input.trim()}
-                      className="px-3"
-                    >
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  )}
-              </div>
-            </div>
+            {/* <!-- Mobile Menu --> */}
+            <button id="menuBtn" className="md:hidden p-2 rounded-md ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all">
+              <Menu className="w-5 h-5 stroke-neutral-200" />
+            </button>
           </div>
-        )}
-      </main>
-    </div>
+        </div>
+
+        {/* <!-- Mobile Menu Panel --> */}
+        <div id="mobileMenu" className="hidden md:hidden bg-neutral-900 border-t border-neutral-800">
+          <nav className="flex flex-col px-6 py-4 space-y-3 text-sm">
+            <a href="#features" className="hover:text-white transition-colors">Features</a>
+            <a href="#science" className="hover:text-white transition-colors">Science</a>
+            <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
+            <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
+            <a href="#" className="text-xs font-medium mt-4 px-4 py-2 rounded-md ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all text-center">Log in</a>
+          </nav>
+        </div>
+      </header>
+
+      {/* <!-- Hero --> */}
+      <section className="relative overflow-hidden" style={{ backgroundColor: 'rgb(23 23 23 / 95%)' }}>
+        {/* <!-- Graphic with fluorescent animated border --> */}
+        <video src="./Generated File August 16, 2025 - 2_18AM.mp4" autoPlay loop muted className="absolute inset-0 w-full h-full object-none -z-10"></video>
+
+        <div className="max-w-3xl mx-auto px-6 lg:px-0 py-28 md:py-40 text-center">
+          <h1 className="text-4xl md:text-6xl font-semibold tracking-tight mb-6">Unlock the Language of Dreams</h1>
+          <p className="text-neutral-400 max-w-xl mx-auto mb-10">Explore what your subconscious is trying to tell you. Harness cutting-edge psychology and AI to decode nightly narratives.</p>
+          <a href="#chat" className="inline-flex items-center text-sm font-medium px-6 py-3 rounded-md bg-indigo-600 hover:bg-indigo-500 transition-colors">
+            Start Interpreting
+            <ArrowRight className="w-4 h-4 stroke-2 ml-2" />
+          </a>
+        </div>
+      </section>
+
+      {/* <!-- Chat-like Prompt --> */}
+      <section id="chat" className="max-w-3xl mx-auto px-6 lg:px-0 mt-20">
+        <h2 className="text-2xl md:text-3xl font-semibold tracking-tight mb-6">Ask About Your Dream</h2>
+
+        {/* <!-- Chat Container --> */}
+        <div className="space-y-4 mb-6"></div>
+
+        {/* <!-- Input --> */}
+        <form className="sticky bottom-6">
+          <div className="flex items-center bg-neutral-800/60 ring-1 ring-neutral-700 rounded-lg px-4 py-3">
+            <input type="text" placeholder="Describe your dream…" className="flex-grow bg-transparent outline-none text-sm placeholder-neutral-500"></input>
+            <button type="submit" className="ml-4 p-2 rounded-md hover:bg-neutral-700/60 transition-colors">
+              <Send className="w-5 h-5 stroke-neutral-200" />
+            </button>
+          </div>
+        </form>
+      </section>
+
+      {/* <!-- Features --> */}
+      <section id="features" className="max-w-7xl mx-auto px-6 lg:px-8 mt-32">
+        <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-center mb-14">Built for Deeper Insight</h2>
+        <div className="grid md:grid-cols-3 gap-10">
+
+          {/* <!-- Feature --> */}
+          <div className="bg-neutral-800/60 p-6 rounded-lg ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all">
+            <div className="mb-4 p-2 rounded-md ring-1 ring-neutral-700 inline-block">
+              <Brain className="w-5 h-5 stroke-neutral-200" />
+            </div>
+            <h3 className="font-medium mb-2">Evidence-Based Analysis</h3>
+            <p className="text-sm text-neutral-400">Grounded in peer-reviewed research from cognitive psychology and dream studies.</p>
+          </div>
+
+          <div className="bg-neutral-800/60 p-6 rounded-lg ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all">
+            <div className="mb-4 p-2 rounded-md ring-1 ring-neutral-700 inline-block">
+              <Wand2 className="w-5 h-5 stroke-neutral-200" />
+            </div>
+            <h3 className="font-medium mb-2">AI-Enhanced Suggestions</h3>
+            <p className="text-sm text-neutral-400">Advanced language models surface the most relevant symbols and themes.</p>
+          </div>
+
+          <div className="bg-neutral-800/60 p-6 rounded-lg ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all">
+            <div className="mb-4 p-2 rounded-md ring-1 ring-neutral-700 inline-block">
+              <Clock className="w-5 h-5 stroke-neutral-200" />
+            </div>
+            <h3 className="font-medium mb-2">Instant Insights</h3>
+            <p className="text-sm text-neutral-400">Receive interpretations in seconds, anytime you wake up with questions.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* <!-- Science --> */}
+      <section id="science" className="max-w-5xl mx-auto px-6 lg:px-0 mt-32">
+        <h2 className="text-2xl md:text-3xl font-semibold tracking-tight mb-6">Why Dreams Matter</h2>
+        <p className="text-neutral-400 mb-4">Dreams offer a window into our unconscious motivations, fears, and desires. Modern psychology suggests that nightly narratives help us process emotions, consolidate memories, and simulate future scenarios.</p>
+        <p className="text-neutral-400">By understanding the symbols and emotions present, we gain clarity and unlock personal growth—turning rest into revelation.</p>
+      </section>
+
+      {/* <!-- Pricing --> */}
+      <section id="pricing" className="max-w-7xl mx-auto px-6 lg:px-8 mt-32">
+        <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-center mb-14">Simple Pricing</h2>
+
+        <div className="grid md:grid-cols-3 gap-8">
+
+          {/* <!-- Tier --> */}
+          <div className="flex flex-col bg-neutral-800/60 rounded-lg ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all p-8">
+            <h3 className="font-medium mb-1">Free</h3>
+            <p className="text-neutral-400 text-sm mb-6">Great for casual explorers</p>
+            <p className="text-3xl font-semibold mb-6">0<span className="text-base font-medium">/mo</span></p>
+            <ul className="space-y-3 text-sm flex-1">
+              <li className="flex items-center space-x-2"><Check className="w-4 h-4 stroke-neutral-200" /><span>3 interpretations / week</span></li>
+              <li className="flex items-center space-x-2"><Check className="w-4 h-4 stroke-neutral-200" /><span>Basic symbol lookup</span></li>
+            </ul>
+            <a href="#" className="mt-8 text-sm font-medium text-center px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 transition-colors">Get Started</a>
+          </div>
+
+          <div className="flex flex-col bg-neutral-800/60 rounded-lg ring-1 ring-indigo-600 hover:ring-indigo-400 transition-all p-8">
+            <h3 className="font-medium mb-1">Pro</h3>
+            <p className="text-neutral-400 text-sm mb-6">For avid dreamers</p>
+            <p className="text-3xl font-semibold mb-6">$9<span className="text-base font-medium">/mo</span></p>
+            <ul className="space-y-3 text-sm flex-1">
+              <li className="flex items-center space-x-2"><Check className="w-4 h-4 stroke-neutral-200" /><span>Unlimited interpretations</span></li>
+              <li className="flex items-center space-x-2"><Check className="w-4 h-4 stroke-neutral-200" /><span>Personal insights diary</span></li>
+              <li className="flex items-center space-x-2"><Check className="w-4 h-4 stroke-neutral-200" /><span>Email summaries</span></li>
+            </ul>
+            <a href="#" className="mt-8 text-sm font-medium text-center px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 transition-colors">Upgrade</a>
+          </div>
+
+          <div className="flex flex-col bg-neutral-800/60 rounded-lg ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all p-8">
+            <h3 className="font-medium mb-1">Studio</h3>
+            <p className="text-neutral-400 text-sm mb-6">For therapists &amp; researchers</p>
+            <p className="text-3xl font-semibold mb-6">$29<span className="text-base font-medium">/mo</span></p>
+            <ul className="space-y-3 text-sm flex-1">
+              <li className="flex items-center space-x-2"><Check className="w-4 h-4 stroke-neutral-200" /><span>Session reports</span></li>
+              <li className="flex items-center space-x-2"><Check className="w-4 h-4 stroke-neutral-200" /><span>Collaboration tools</span></li>
+              <li className="flex items-center space-x-2"><Check className="w-4 h-4 stroke-neutral-200" /><span>Early access to beta features</span></li>
+            </ul>
+            <a href="#" className="mt-8 text-sm font-medium text-center px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 transition-colors">Contact Sales</a>
+          </div>
+        </div>
+      </section>
+
+      {/* <!-- FAQ --> */}
+      <section id="faq" className="max-w-5xl mx-auto px-6 lg:px-0 mt-32 mb-40">
+        <h2 className="text-2xl md:text-3xl font-semibold tracking-tight mb-6">Frequently Asked Questions</h2>
+        <div className="space-y-8">
+
+          <details className="group ring-1 ring-neutral-700 rounded-lg p-6 hover:ring-neutral-500 transition-all">
+            <summary className="cursor-pointer flex items-center justify-between text-sm font-medium text-neutral-200">
+              How accurate are the interpretations?
+              <ChevronDown className="w-4 h-4 stroke-neutral-400 group-open:rotate-180 transition-transform" />
+            </summary>
+            <p className="mt-4 text-sm text-neutral-400">Interpretations are generated using empirical research and machine-learning insights, but personal context always matters. Use results as guidance rather than absolute truths.</p>
+          </details>
+
+          <details className="group ring-1 ring-neutral-700 rounded-lg p-6 hover:ring-neutral-500 transition-all">
+            <summary className="cursor-pointer flex items-center justify-between text-sm font-medium text-neutral-200">
+              Can I share my insights with a therapist?
+              <ChevronDown className="w-4 h-4 stroke-neutral-400 group-open:rotate-180 transition-transform" />
+            </summary>
+            <p className="mt-4 text-sm text-neutral-400">Yes, you can export any dream session as a PDF or secure link to share with your therapist or support group.</p>
+          </details>
+
+          <details className="group ring-1 ring-neutral-700 rounded-lg p-6 hover:ring-neutral-500 transition-all">
+            <summary className="cursor-pointer flex items-center justify-between text-sm font-medium text-neutral-200">
+              Is my data private?
+              <ChevronDown className="w-4 h-4 stroke-neutral-400 group-open:rotate-180 transition-transform" />
+            </summary>
+            <p className="mt-4 text-sm text-neutral-400">We employ end-to-end encryption and never sell personal data. You control deletion at any time.</p>
+          </details>
+
+        </div>
+      </section>
+
+      {/* <!-- Footer --> */}
+      <footer className="border-t border-neutral-800 py-10 text-sm">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center space-y-6 md:space-y-0">
+          <p className="text-neutral-500">© 2024 Dreamscape. All rights reserved.</p>
+          <div className="flex items-center space-x-6">
+            <a href="#" className="hover:text-neutral-300 transition-colors">Terms</a>
+            <a href="#" className="hover:text-neutral-300 transition-colors">Privacy</a>
+            <a href="#" className="hover:text-neutral-300 transition-colors">Contact</a>
+          </div>
+        </div>
+      </footer>
+    </>
   )
 }

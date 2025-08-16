@@ -1,6 +1,6 @@
-import { llmConfig } from '@/app/page'
 import { Conversation } from '@/lib/database'
 import { LLMProvider } from '@/lib/llm-providers'
+import { llmConfig } from '@/types/llmconfig.types'
 
 export default function DashboardHeader ({ activeConversation, currentProvider, llmConfig }: { activeConversation: Conversation | undefined, currentProvider: LLMProvider | undefined, llmConfig: llmConfig; }) {
   return (
