@@ -1,13 +1,30 @@
 import { Conversation, Message } from '@/lib/database'
 import { useUser } from '@clerk/nextjs'
-import { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 
-export const useConversations = () => {
+export type UseConversationsReturn = {
+  conversations: Conversation[]
+  activeConversationId: string | null
+  setActiveConversationId: React.Dispatch<React.SetStateAction<string | null>>
+  createConversation: (title?: string) => Promise<string | null>
+  updateConversationTitle: (conversationId: string, title: string) => Promise<void>
+  deleteConversation: (conversationId: string) => Promise<void>
+  addMessage: (conversationId: string, role: 'user' | 'assistant', content: string) => Promise<void>
+  isLoading: boolean
+  error: string | null
+}
+
+type LocalMessage = Omit<Message, 'timestamp'> & { timestamp: string }
+type LocalConversation = Omit<Conversation, 'lastUpdated' | 'messages'> & {
+  lastUpdated: string
+  messages: LocalMessage[]
+}
+
+export const useConversations = (): UseConversationsReturn => {
   const { user, isLoaded } = useUser()
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
-  console.log('🚀 ~ useConversations ~ activeConversationId:', activeConversationId)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
 
   // Cargar conversaciones del servidor
@@ -22,22 +39,23 @@ export const useConversations = () => {
         throw new Error('Failed to fetch conversations')
       }
 
-      const data = await response.json()
+      const data: { conversations: Conversation[] } = await response.json()
       setConversations(data.conversations || [])
       setError(null)
-    } catch (err: any) {
-      console.error('Error loading conversations:', err)
-      setError(err.message)
+    } catch (err) {
+      const errorObj = err as Error
+      console.error('Error loading conversations:', errorObj)
+      setError(errorObj.message)
 
       // Fallback a localStorage si falla la DB
       const localConversations = localStorage.getItem('dream-reader-conversations')
       if (localConversations) {
         try {
-          const parsed = JSON.parse(localConversations)
-          setConversations(parsed.map((conv: any) => ({
+          const parsed: LocalConversation[] = JSON.parse(localConversations)
+          setConversations(parsed.map((conv) => ({
             ...conv,
             lastUpdated: new Date(conv.lastUpdated),
-            messages: conv.messages.map((msg: any) => ({
+            messages: conv.messages.map((msg) => ({
               ...msg,
               timestamp: new Date(msg.timestamp)
             }))
@@ -71,15 +89,16 @@ export const useConversations = () => {
         throw new Error('Failed to create conversation')
       }
 
-      const newConversation = await response.json()
+      const newConversation: Conversation = await response.json()
 
       // Añadir la nueva conversación al estado
       setConversations(prev => [newConversation, ...prev])
 
       // Devolver el ID de la nueva conversación
       return newConversation.id
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err) {
+      const errorObj = err as Error
+      setError(errorObj.message)
       return null
     } finally {
       setIsLoading(false)
@@ -121,7 +140,7 @@ export const useConversations = () => {
       })
 
       if (response.ok) {
-        const savedMessage = await response.json()
+        const savedMessage: Message = await response.json()
 
         // Actualizar con el ID real del servidor
         setConversations(prev => prev.map(conv =>
@@ -135,9 +154,10 @@ export const useConversations = () => {
             : conv
         ))
       }
-    } catch (err: any) {
-      console.error('Error saving message:', err)
-      setError(err.message)
+    } catch (err) {
+      const errorObj = err as Error
+      console.error('Error saving message:', errorObj)
+      setError(errorObj.message)
     }
   }
 
@@ -161,9 +181,10 @@ export const useConversations = () => {
       if (!response.ok) {
         throw new Error('Failed to update title')
       }
-    } catch (err: any) {
-      console.error('Error updating title:', err)
-      setError(err.message)
+    } catch (err) {
+      const errorObj = err as Error
+      console.error('Error updating title:', errorObj)
+      setError(errorObj.message)
     }
   }
 
@@ -187,43 +208,45 @@ export const useConversations = () => {
       if (activeConversationId === conversationId) {
         setActiveConversationId(null)
       }
-    } catch (err: any) {
-      console.error('Error deleting conversation:', err)
-      setError(err.message)
+    } catch (err) {
+      const errorObj = err as Error
+      console.error('Error deleting conversation:', errorObj)
+      setError(errorObj.message)
     }
   }
 
   // Migrar conversaciones locales a la base de datos
-  const migrateLocalConversations = async (): Promise<void> => {
-    if (!user) return
+  // const migrateLocalConversations = async (): Promise<void> => {
+  //   if (!user) return
 
-    const localConversations = localStorage.getItem('dream-reader-conversations')
-    if (!localConversations) return
+  //   const localConversations = localStorage.getItem('dream-reader-conversations')
+  //   if (!localConversations) return
 
-    try {
-      const parsed = JSON.parse(localConversations)
-      const { migrateLocalConversations: migrateFunc } = await import('@/lib/database')
+  //   try {
+  //     const parsed: LocalConversation[] = JSON.parse(localConversations)
+  //     const { migrateLocalConversations: migrateFunc } = await import('@/lib/database')
 
-      const conversationsToMigrate = parsed.map((conv: any) => ({
-        ...conv,
-        lastUpdated: new Date(conv.lastUpdated),
-        messages: conv.messages.map((msg: any) => ({
-          ...msg,
-          timestamp: new Date(msg.timestamp)
-        }))
-      }))
+  //     const conversationsToMigrate: Conversation[] = parsed.map((conv) => ({
+  //       ...conv,
+  //       lastUpdated: new Date(conv.lastUpdated),
+  //       messages: conv.messages.map((msg) => ({
+  //         ...msg,
+  //         timestamp: new Date(msg.timestamp)
+  //       }))
+  //     }))
 
-      const success = await migrateFunc(user.id, conversationsToMigrate)
+  //     const success = await migrateFunc(user.id, conversationsToMigrate)
 
-      if (success) {
-        localStorage.removeItem('dream-reader-conversations')
-        await loadConversations() // Recargar desde la DB
-      }
-    } catch (err: any) {
-      console.error('Error migrating conversations:', err)
-      setError(err.message)
-    }
-  }
+  //     if (success) {
+  //       localStorage.removeItem('dream-reader-conversations')
+  //       await loadConversations() // Recargar desde la DB
+  //     }
+  //   } catch (err) {
+  //     const errorObj = err as Error
+  //     console.error('Error migrating conversations:', errorObj)
+  //     setError(errorObj.message)
+  //   }
+  // }
 
   // Efectos
   useEffect(() => {
@@ -243,7 +266,7 @@ export const useConversations = () => {
     conversations,
     activeConversationId,
     setActiveConversationId,
-    createConversation, // Ahora devuelve Promise<string | null>
+    createConversation,
     updateConversationTitle,
     deleteConversation,
     addMessage,
