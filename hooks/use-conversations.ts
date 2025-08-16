@@ -1,38 +1,39 @@
-import { Conversation, Message } from '@/lib/database';
-import { useUser } from '@clerk/nextjs';
-import { useCallback, useEffect, useState } from 'react';
+import { Conversation, Message } from '@/lib/database'
+import { useUser } from '@clerk/nextjs'
+import { useCallback, useEffect, useState } from 'react'
 
 export const useConversations = () => {
-  const { user, isLoaded } = useUser();
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { user, isLoaded } = useUser()
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
+  console.log('🚀 ~ useConversations ~ activeConversationId:', activeConversationId)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   // Cargar conversaciones del servidor
   const loadConversations = useCallback(async () => {
-    if (!user) return;
-    
+    if (!user) return
+
     try {
-      setIsLoading(true);
-      const response = await fetch('/api/conversations');
-      
+      setIsLoading(true)
+      const response = await fetch('/api/conversations')
+
       if (!response.ok) {
-        throw new Error('Failed to fetch conversations');
+        throw new Error('Failed to fetch conversations')
       }
-      
-      const data = await response.json();
-      setConversations(data.conversations || []);
-      setError(null);
+
+      const data = await response.json()
+      setConversations(data.conversations || [])
+      setError(null)
     } catch (err: any) {
-      console.error('Error loading conversations:', err);
-      setError(err.message);
-      
+      console.error('Error loading conversations:', err)
+      setError(err.message)
+
       // Fallback a localStorage si falla la DB
-      const localConversations = localStorage.getItem('dream-reader-conversations');
+      const localConversations = localStorage.getItem('dream-reader-conversations')
       if (localConversations) {
         try {
-          const parsed = JSON.parse(localConversations);
+          const parsed = JSON.parse(localConversations)
           setConversations(parsed.map((conv: any) => ({
             ...conv,
             lastUpdated: new Date(conv.lastUpdated),
@@ -40,55 +41,55 @@ export const useConversations = () => {
               ...msg,
               timestamp: new Date(msg.timestamp)
             }))
-          })));
+          })))
         } catch {
-          setConversations([]);
+          setConversations([])
         }
       }
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  }, [user]);
+  }, [user])
 
   // Crear nueva conversación
   const createConversation = async (title?: string): Promise<string | null> => {
-    setIsLoading(true);
-    setError(null);
-    
+    setIsLoading(true)
+    setError(null)
+
     try {
       const response = await fetch('/api/conversations', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           title: title || 'Nueva conversación'
-        }),
-      });
+        })
+      })
 
       if (!response.ok) {
-        throw new Error('Failed to create conversation');
+        throw new Error('Failed to create conversation')
       }
 
-      const newConversation = await response.json();
-      
+      const newConversation = await response.json()
+
       // Añadir la nueva conversación al estado
-      setConversations(prev => [newConversation, ...prev]);
-      
+      setConversations(prev => [newConversation, ...prev])
+
       // Devolver el ID de la nueva conversación
-      return newConversation.id;
+      return newConversation.id
     } catch (err: any) {
-      setError(err.message);
-      return null;
+      setError(err.message)
+      return null
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   // Agregar mensaje a una conversación
   const addMessage = async (
-    conversationId: string, 
-    role: 'user' | 'assistant', 
+    conversationId: string,
+    role: 'user' | 'assistant',
     content: string
   ): Promise<void> => {
     const tempMessage: Message = {
@@ -96,113 +97,113 @@ export const useConversations = () => {
       role,
       content,
       timestamp: new Date()
-    };
+    }
 
     // Actualizar UI inmediatamente
-    setConversations(prev => prev.map(conv => 
-      conv.id === conversationId 
+    setConversations(prev => prev.map(conv =>
+      conv.id === conversationId
         ? {
-            ...conv,
-            messages: [...conv.messages, tempMessage],
-            lastUpdated: new Date()
-          }
+          ...conv,
+          messages: [...conv.messages, tempMessage],
+          lastUpdated: new Date()
+        }
         : conv
-    ));
+    ))
 
     // Guardar en servidor
     try {
       const response = await fetch(`/api/conversations/${conversationId}`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ role, content }),
-      });
+        body: JSON.stringify({ role, content })
+      })
 
       if (response.ok) {
-        const savedMessage = await response.json();
-        
+        const savedMessage = await response.json()
+
         // Actualizar con el ID real del servidor
-        setConversations(prev => prev.map(conv => 
-          conv.id === conversationId 
+        setConversations(prev => prev.map(conv =>
+          conv.id === conversationId
             ? {
-                ...conv,
-                messages: conv.messages.map(msg => 
-                  msg.id === tempMessage.id ? { ...savedMessage, timestamp: new Date(savedMessage.timestamp) } : msg
-                )
-              }
+              ...conv,
+              messages: conv.messages.map(msg =>
+                msg.id === tempMessage.id ? { ...savedMessage, timestamp: new Date(savedMessage.timestamp) } : msg
+              )
+            }
             : conv
-        ));
+        ))
       }
     } catch (err: any) {
-      console.error('Error saving message:', err);
-      setError(err.message);
+      console.error('Error saving message:', err)
+      setError(err.message)
     }
-  };
+  }
 
   // Actualizar título de conversación
   const updateConversationTitle = async (conversationId: string, title: string): Promise<void> => {
     // Actualizar UI inmediatamente
-    setConversations(prev => prev.map(conv => 
+    setConversations(prev => prev.map(conv =>
       conv.id === conversationId ? { ...conv, title } : conv
-    ));
+    ))
 
     // Guardar en servidor
     try {
       const response = await fetch(`/api/conversations/${conversationId}`, {
         method: 'PATCH',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ title }),
-      });
+        body: JSON.stringify({ title })
+      })
 
       if (!response.ok) {
-        throw new Error('Failed to update title');
+        throw new Error('Failed to update title')
       }
     } catch (err: any) {
-      console.error('Error updating title:', err);
-      setError(err.message);
+      console.error('Error updating title:', err)
+      setError(err.message)
     }
-  };
+  }
 
   // Eliminar conversación
   const deleteConversation = async (conversationId: string): Promise<void> => {
-    if (!user) return;
+    if (!user) return
 
     try {
       const response = await fetch(`/api/conversations/${conversationId}`, {
-        method: 'DELETE',
-      });
+        method: 'DELETE'
+      })
 
       if (!response.ok) {
-        throw new Error('Failed to delete conversation');
+        throw new Error('Failed to delete conversation')
       }
 
       // Actualizar estado local
-      setConversations(prev => prev.filter(conv => conv.id !== conversationId));
-      
+      setConversations(prev => prev.filter(conv => conv.id !== conversationId))
+
       // Si era la conversación activa, limpiar la selección
       if (activeConversationId === conversationId) {
-        setActiveConversationId(null);
+        setActiveConversationId(null)
       }
     } catch (err: any) {
-      console.error('Error deleting conversation:', err);
-      setError(err.message);
+      console.error('Error deleting conversation:', err)
+      setError(err.message)
     }
-  };
+  }
 
   // Migrar conversaciones locales a la base de datos
   const migrateLocalConversations = async (): Promise<void> => {
-    if (!user) return;
+    if (!user) return
 
-    const localConversations = localStorage.getItem('dream-reader-conversations');
-    if (!localConversations) return;
+    const localConversations = localStorage.getItem('dream-reader-conversations')
+    if (!localConversations) return
 
     try {
-      const parsed = JSON.parse(localConversations);
-      const { migrateLocalConversations: migrateFunc } = await import('@/lib/database');
-      
+      const parsed = JSON.parse(localConversations)
+      const { migrateLocalConversations: migrateFunc } = await import('@/lib/database')
+
       const conversationsToMigrate = parsed.map((conv: any) => ({
         ...conv,
         lastUpdated: new Date(conv.lastUpdated),
@@ -210,33 +211,33 @@ export const useConversations = () => {
           ...msg,
           timestamp: new Date(msg.timestamp)
         }))
-      }));
+      }))
 
-      const success = await migrateFunc(user.id, conversationsToMigrate);
-      
+      const success = await migrateFunc(user.id, conversationsToMigrate)
+
       if (success) {
-        localStorage.removeItem('dream-reader-conversations');
-        await loadConversations(); // Recargar desde la DB
+        localStorage.removeItem('dream-reader-conversations')
+        await loadConversations() // Recargar desde la DB
       }
     } catch (err: any) {
-      console.error('Error migrating conversations:', err);
-      setError(err.message);
+      console.error('Error migrating conversations:', err)
+      setError(err.message)
     }
-  };
+  }
 
   // Efectos
   useEffect(() => {
     if (isLoaded && user) {
-      loadConversations();
+      loadConversations()
     }
-  }, [isLoaded, user, loadConversations]);
+  }, [isLoaded, user, loadConversations])
 
   // Auto-seleccionar la primera conversación si no hay ninguna activa
   useEffect(() => {
     if (conversations.length > 0 && !activeConversationId) {
-      setActiveConversationId(conversations[0].id);
+      setActiveConversationId(conversations[0].id)
     }
-  }, [conversations, activeConversationId]);
+  }, [conversations, activeConversationId])
 
   return {
     conversations,
@@ -248,5 +249,5 @@ export const useConversations = () => {
     addMessage,
     isLoading,
     error
-  };
-};
+  }
+}

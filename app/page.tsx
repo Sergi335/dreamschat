@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { useConversations } from '@/hooks/use-conversations'
+import { useConversations } from '@/context/conversations-context'
 import { getProviderById } from '@/lib/llm-providers'
 import { useUser } from '@clerk/nextjs'
 import { Bot, MessageSquare, Send, X } from 'lucide-react'
@@ -33,6 +33,7 @@ export default function ChatGPT () {
     addMessage,
     isLoading
   } = useConversations()
+  console.log('🚀 ~ ChatGPT ~ activeConversationId:', activeConversationId)
 
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
@@ -288,7 +289,17 @@ export default function ChatGPT () {
           {activeConversation
             ? (
               <div className="space-y-4 max-w-4xl mx-auto">
-                {activeConversation.messages.map((message) => (
+                {[
+                  ...activeConversation.messages,
+                  ...(isTyping && typingMessage
+                    ? [{
+                      id: 'typing',
+                      content: typingMessage + '|',
+                      role: 'assistant',
+                      timestamp: new Date()
+                    }]
+                    : [])
+                ].map((message) => (
                   <MessageComponent
                     key={message.id}
                     message={message}

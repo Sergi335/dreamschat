@@ -1,7 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { useConversations } from '@/hooks/use-conversations'
+import { useConversations } from '@/context/conversations-context'
 import { cn } from '@/lib/utils'
 import { useClerk, useUser } from '@clerk/nextjs'
 import { LogOut, Plus, Trash2, User, X } from 'lucide-react'
