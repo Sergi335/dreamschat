@@ -1,5 +1,11 @@
 'use client'
 
+import {
+  PromptInput,
+  PromptInputSubmit,
+  PromptInputTextarea,
+  PromptInputToolbar
+} from '@/components/ai-elements/prompt-input'
 import DashboardHeader from '@/components/dashboard-header'
 import { MessageComponent } from '@/components/message-component'
 import { Sidebar } from '@/components/sidebar'
@@ -8,8 +14,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { useConversations } from '@/context/conversations-context'
 import { getProviderById } from '@/lib/llm-providers'
 import { useUser } from '@clerk/nextjs'
-import { Bot, MessageSquare, Send, X } from 'lucide-react'
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Bot, MessageSquare, Mic } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 interface Message {
   id: string;
@@ -185,9 +191,9 @@ export default function Dashboard () {
   }, [input, activeConversation, isTyping, activeConversationId, addMessage, updateConversationTitle, callLLM, generateTitle])
 
   // Función para detener el efecto de escritura
-  const handleStopTyping = useCallback(() => {
-    shouldStopRef.current = true
-  }, [])
+  // const handleStopTyping = useCallback(() => {
+  //   shouldStopRef.current = true
+  // }, [])
 
   // const handleNewConversation = useCallback(async () => {
   //   try {
@@ -318,8 +324,29 @@ export default function Dashboard () {
                 {error}
               </div>
             )}
-
             <div className="max-w-4xl mx-auto">
+              <div className="flex gap-2">
+                <PromptInput onSubmit={e => {
+                  e.preventDefault()
+                  handleSendMessage()
+                }} className="mt-4 relative">
+                  <PromptInputTextarea
+                    value={input}
+                    onChange={e => setInput(e.target.value)}
+                    aria-label="Prompt"
+                    spellCheck={true}
+                  />
+                  <PromptInputToolbar>
+                    <Mic />
+                    <PromptInputSubmit
+                      disabled={!input.trim() || isTyping}
+                      // status={isTyping ? 'loading' : 'ready'}
+                    />
+                  </PromptInputToolbar>
+                </PromptInput>
+              </div>
+            </div>
+            {/* <div className="max-w-4xl mx-auto">
               <div className="flex gap-2">
                 <div
                   ref={inputRef as React.RefObject<HTMLDivElement>}
@@ -365,7 +392,7 @@ export default function Dashboard () {
                     </Button>
                   )}
               </div>
-            </div>
+            </div> */}
           </div>
         )}
       </main>
