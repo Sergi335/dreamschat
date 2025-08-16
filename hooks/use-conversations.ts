@@ -51,16 +51,19 @@ export const useConversations = () => {
   }, [user]);
 
   // Crear nueva conversación
-  const createConversation = async (title: string = 'New Chat'): Promise<string | null> => {
-    if (!user) return null;
-
+  const createConversation = async (title?: string): Promise<string | null> => {
+    setIsLoading(true);
+    setError(null);
+    
     try {
       const response = await fetch('/api/conversations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ title }),
+        body: JSON.stringify({
+          title: title || 'Nueva conversación'
+        }),
       });
 
       if (!response.ok) {
@@ -69,23 +72,16 @@ export const useConversations = () => {
 
       const newConversation = await response.json();
       
+      // Añadir la nueva conversación al estado
       setConversations(prev => [newConversation, ...prev]);
+      
+      // Devolver el ID de la nueva conversación
       return newConversation.id;
     } catch (err: any) {
-      console.error('Error creating conversation:', err);
       setError(err.message);
-      
-      // Fallback a localStorage
-      const tempId = Date.now().toString();
-      const newConversation: Conversation = {
-        id: tempId,
-        title,
-        messages: [],
-        lastUpdated: new Date()
-      };
-      
-      setConversations(prev => [newConversation, ...prev]);
-      return tempId;
+      return null;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -246,13 +242,11 @@ export const useConversations = () => {
     conversations,
     activeConversationId,
     setActiveConversationId,
-    isLoading,
-    error,
-    createConversation,
-    addMessage,
+    createConversation, // Ahora devuelve Promise<string | null>
     updateConversationTitle,
     deleteConversation,
-    migrateLocalConversations,
-    refreshConversations: loadConversations
+    addMessage,
+    isLoading,
+    error
   };
 };

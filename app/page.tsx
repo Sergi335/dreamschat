@@ -1,21 +1,17 @@
-"use client";
+'use client'
 
-import { MarkdownRenderer } from '@/components/markdown-renderer';
-import { MessageComponent } from '@/components/message-component';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { useConversations } from '@/hooks/use-conversations';
-import { getProviderById } from '@/lib/llm-providers';
-import { cn } from '@/lib/utils';
-import { useClerk, useUser } from '@clerk/nextjs';
-import { Bot, LogOut, Menu, MessageSquare, Plus, Send, User, X } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-
-
-
-
+import { MarkdownRenderer } from '@/components/markdown-renderer'
+import { MessageComponent } from '@/components/message-component'
+import { Sidebar } from '@/components/sidebar'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { useConversations } from '@/hooks/use-conversations'
+import { getProviderById } from '@/lib/llm-providers'
+import { useUser } from '@clerk/nextjs'
+import { Bot, MessageSquare, Send, X } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 interface Message {
   id: string;
@@ -24,34 +20,29 @@ interface Message {
   timestamp: Date;
 }
 
-export default function ChatGPT() {
+export default function ChatGPT () {
   // Clerk hooks para autenticación
-  const { user, isLoaded, isSignedIn } = useUser();
-  const { signOut } = useClerk();
-  
+  const { user, isLoaded, isSignedIn } = useUser()
+
   // Hook para gestión de conversaciones con persistencia
   const {
     conversations,
     activeConversationId,
-    setActiveConversationId,
     createConversation,
     updateConversationTitle,
-    deleteConversation,
     addMessage,
-    isLoading,
-    error: dbError
-  } = useConversations();
-  
-  const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [typingMessage, setTypingMessage] = useState(''); // Estado para el mensaje en escritura
-  const [shouldStopTyping, setShouldStopTyping] = useState(false);
-  const shouldStopRef = useRef(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [error, setError] = useState<string>('');
-  
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+    isLoading
+  } = useConversations()
+
+  const [input, setInput] = useState('')
+  const [isTyping, setIsTyping] = useState(false)
+  const [typingMessage, setTypingMessage] = useState('') // Estado para el mensaje en escritura
+  const shouldStopRef = useRef(false)
+  // const [sidebarOpen, setSidebarOpen] = useState(false) <-- contexto?
+  const [error, setError] = useState<string>('') // <-- contexto?
+
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   // Load configuration from environment variables
   const llmConfig = useMemo(() => ({
@@ -59,157 +50,167 @@ export default function ChatGPT() {
     model: process.env.NEXT_PUBLIC_LLM_MODEL || 'gpt-3.5-turbo',
     temperature: parseFloat(process.env.NEXT_PUBLIC_LLM_TEMPERATURE || '0.7'),
     maxTokens: parseInt(process.env.NEXT_PUBLIC_LLM_MAX_TOKENS || '1000'),
-    customBaseURL: process.env.NEXT_PUBLIC_LLM_BASE_URL || undefined,
-  }), []);
+    customBaseURL: process.env.NEXT_PUBLIC_LLM_BASE_URL || undefined
+  }), [])
 
   // Create initial conversation if none exist and user is loaded
   useEffect(() => {
     if (isLoaded && isSignedIn && conversations.length === 0 && !isLoading) {
-      createConversation("Nueva conversación");
+      createConversation('Nueva conversación')
     }
-  }, [isLoaded, isSignedIn, conversations.length, isLoading, createConversation]);
+  }, [isLoaded, isSignedIn, conversations.length, isLoading, createConversation])
 
-  const activeConversation = conversations.find(c => c.id === activeConversationId);
-  const currentProvider = getProviderById(llmConfig.providerId);
+  const activeConversation = conversations.find(c => c.id === activeConversationId)
+  const currentProvider = getProviderById(llmConfig.providerId)
 
   // Optimizar scroll con throttle
   const scrollToBottomThrottled = useMemo(() => {
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: ReturnType<typeof setTimeout>
     return () => {
-      clearTimeout(timeoutId);
+      clearTimeout(timeoutId)
       timeoutId = setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-    };
-  }, []);
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      }, 100)
+    }
+  }, [])
 
   useEffect(() => {
-    scrollToBottomThrottled();
-  }, [activeConversation?.messages?.length, isTyping, scrollToBottomThrottled]);
+    scrollToBottomThrottled()
+  }, [activeConversation?.messages?.length, isTyping, scrollToBottomThrottled])
 
   const generateTitle = useCallback((firstMessage: string): string => {
-    return firstMessage.length > 30 
+    return firstMessage.length > 30
       ? firstMessage.substring(0, 30) + '...'
-      : firstMessage;
-  }, []);
+      : firstMessage
+  }, [])
 
   const callLLM = useCallback(async (messages: Message[]): Promise<string> => {
     const response = await fetch('/api/chat', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         messages: messages.map(msg => ({
           role: msg.role,
-          content: msg.content,
+          content: msg.content
         })),
-        config: llmConfig,
-      }),
-    });
+        config: llmConfig
+      })
+    })
 
-    const data = await response.json();
+    const data = await response.json()
 
     if (!response.ok) {
-      throw new Error(data.error || 'Failed to get response');
+      throw new Error(data.error || 'Failed to get response')
     }
 
-    return data.message.content;
-  }, [llmConfig]);
+    return data.message.content
+  }, [llmConfig])
 
   const handleSendMessage = useCallback(async () => {
-    if (!input.trim() || !activeConversation || isTyping) return;
+    if (!input.trim() || !activeConversation || isTyping) return
 
     const userMessage = {
       content: input.trim(),
-      role: 'user' as const,
-    };
+      role: 'user' as const
+    }
 
-    const isFirstMessage = activeConversation.messages.filter(m => m.role === 'user').length === 0;
+    const isFirstMessage = activeConversation.messages.filter(m => m.role === 'user').length === 0
 
     try {
       // Agregar mensaje del usuario a la base de datos
-      await addMessage(activeConversationId!, userMessage.role, userMessage.content);
-      
+      await addMessage(activeConversationId!, userMessage.role, userMessage.content)
+
       // Actualizar título si es el primer mensaje
       if (isFirstMessage) {
-        await updateConversationTitle(activeConversationId!, generateTitle(userMessage.content));
+        await updateConversationTitle(activeConversationId!, generateTitle(userMessage.content))
       }
 
-      setInput('');
-      setIsTyping(true);
-      setTypingMessage(''); // Limpiar mensaje de escritura anterior
-      setShouldStopTyping(false);
-      shouldStopRef.current = false;
-      setError('');
+      setInput('')
+      setIsTyping(true)
+      setTypingMessage('') // Limpiar mensaje de escritura anterior
+      shouldStopRef.current = false
+      setError('')
 
       const allMessages = [...activeConversation.messages, {
         id: 'temp',
         content: userMessage.content,
         role: userMessage.role,
         timestamp: new Date()
-      }];
-      
-      const aiResponseContent = await callLLM(allMessages);
+      }]
+
+      const aiResponseContent = await callLLM(allMessages)
 
       // Efecto de escritura optimizado
-      let displayed = '';
-      const charsPerStep = 12; // Más caracteres para tablas
-      let updateCounter = 0;
-      
+      let displayed = ''
+      const charsPerStep = 12 // Más caracteres para tablas
+      let updateCounter = 0
+
       for (let i = 0; i < aiResponseContent.length; i += charsPerStep) {
         if (shouldStopRef.current) {
-          displayed = aiResponseContent; // Mostrar todo si se detiene
-          break;
+          displayed = aiResponseContent // Mostrar todo si se detiene
+          break
         }
 
-        displayed += aiResponseContent.slice(i, i + charsPerStep);
-        updateCounter++;
-        
+        displayed += aiResponseContent.slice(i, i + charsPerStep)
+        updateCounter++
+
         // Actualizar UI solo cada 3 iteraciones para reducir re-renders
         if (updateCounter % 3 === 0 || i + charsPerStep >= aiResponseContent.length) {
-          setTypingMessage(displayed);
-          await new Promise(res => setTimeout(res, 10)); // Ligeramente más lento pero más suave
+          setTypingMessage(displayed)
+          await new Promise(resolve => setTimeout(resolve, 10)) // Ligeramente más lento pero más suave
         }
       }
 
       // Asegurar que se muestra el contenido final
       if (displayed !== aiResponseContent) {
-        setTypingMessage(aiResponseContent);
-        await new Promise(res => setTimeout(res, 50));
+        setTypingMessage(aiResponseContent)
+        await new Promise(resolve => setTimeout(resolve, 50))
       }
 
       // Guardar el mensaje final en la base de datos
-      await addMessage(activeConversationId!, 'assistant', displayed);
-
-    } catch (error: any) {
-      console.error('Error calling LLM:', error);
-      setError(error.message || 'Failed to get response from AI');
+      await addMessage(activeConversationId!, 'assistant', displayed)
+    } catch (error: unknown) {
+      console.error('Error calling LLM:', error)
+      setError(error instanceof Error ? error.message : 'Failed to get response from AI')
     } finally {
-      setIsTyping(false);
-      inputRef.current?.focus();
+      setIsTyping(false)
+      inputRef.current?.focus()
     }
-  }, [input, activeConversation, isTyping, activeConversationId, addMessage, updateConversationTitle, callLLM, generateTitle]);
+  }, [input, activeConversation, isTyping, activeConversationId, addMessage, updateConversationTitle, callLLM, generateTitle])
 
   // Función para detener el efecto de escritura
   const handleStopTyping = useCallback(() => {
-    setShouldStopTyping(true);
-    shouldStopRef.current = true;
-  }, []);
+    shouldStopRef.current = true
+  }, [])
 
-  const handleNewConversation = useCallback(async () => {
-    await createConversation("Nueva conversación");
-    setSidebarOpen(false);
-    setError('');
-  }, [createConversation]);
+  // const handleNewConversation = useCallback(async () => {
+  //   try {
+  //     const newConversationId = await createConversation('Nueva conversación')
+  //     if (newConversationId) {
+  //       setActiveConversationId(newConversationId)
+  //     }
+  //     setSidebarOpen(false)
+  //     setError('')
+
+  //     // Enfocar el input después de crear la conversación
+  //     setTimeout(() => {
+  //       inputRef.current?.focus()
+  //     }, 100)
+  //   } catch (error) {
+  //     console.error('Error creating conversation:', error)
+  //     setError('Error al crear nueva conversación')
+  //   }
+  // }, [createConversation, setActiveConversationId])
 
   const formatTime = useCallback((date: Date) => {
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
       minute: '2-digit',
-      hour12: true 
-    });
-  }, []);
+      hour12: true
+    })
+  }, [])
 
   // Mostrar loading mientras Clerk se inicializa
   if (!isLoaded) {
@@ -220,7 +221,7 @@ export default function ChatGPT() {
           <p>Cargando...</p>
         </div>
       </div>
-    );
+    )
   }
 
   // Mostrar página de inicio de sesión si no está autenticado
@@ -234,15 +235,15 @@ export default function ChatGPT() {
             Tu asistente de IA personalizado con múltiples modelos de lenguaje
           </p>
           <div className="space-y-4">
-            <Button 
-              onClick={() => window.location.href = '/sign-in'} 
+            <Button
+              onClick={() => { window.location.href = '/sign-in' }}
               className="w-full bg-blue-600 hover:bg-blue-700"
             >
               Iniciar Sesión
             </Button>
-            <Button 
-              onClick={() => window.location.href = '/sign-up'} 
-              variant="outline" 
+            <Button
+              onClick={() => { window.location.href = '/sign-up' }}
+              variant="outline"
               className="w-full"
             >
               Registrarse
@@ -250,98 +251,25 @@ export default function ChatGPT() {
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   return (
     <div className="flex h-screen bg-black text-white">
-      {/* Sidebar */}
-      <div className={cn(
-        "flex flex-col w-64 bg-gray-900 border-r border-gray-700 transition-all duration-300",
-        sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-      )}>
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
-          <h1 className="text-xl font-bold">Dream Reader</h1>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => setSidebarOpen(false)}
-            className="md:hidden"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-
-        {/* New conversation button */}
-        <div className="p-4">
-          <Button 
-            onClick={handleNewConversation} 
-            className="w-full bg-gray-800 hover:bg-gray-700 border border-gray-600"
-            disabled={isLoading}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Nueva conversación
-          </Button>
-        </div>
-
-        {/* Conversations list */}
-        <ScrollArea className="flex-1 px-4">
-          <div className="space-y-2">
-            {conversations.map((conversation) => (
-              <Button
-                key={conversation.id}
-                variant={conversation.id === activeConversationId ? "secondary" : "ghost"}
-                className="w-full justify-start text-left h-auto p-3"
-                onClick={() => setActiveConversationId(conversation.id)}
-              >
-                <div className="flex-1 truncate">
-                  <div className="font-medium truncate">{conversation.title}</div>
-                  <div className="text-xs text-gray-400 mt-1">
-                    {conversation.messages.length} mensajes
-                  </div>
-                </div>
-              </Button>
-            ))}
-          </div>
-        </ScrollArea>
-
-        {/* User info and settings */}
-        <div className="p-4 border-t border-gray-700">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center space-x-3">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={user?.imageUrl} />
-                <AvatarFallback>
-                  <User className="h-4 w-4" />
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">
-                  {user?.firstName || user?.emailAddresses[0]?.emailAddress}
-                </p>
-              </div>
-            </div>
-            <Button variant="ghost" size="sm" onClick={() => signOut()}>
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
-
+      <Sidebar ref={inputRef} setError={setError} />
       {/* Main content */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
           <div className="flex items-center space-x-3">
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            {/* <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setSidebarOpen(true)}
               className="md:hidden"
             >
               <Menu className="h-4 w-4" />
-            </Button>
+            </Button> */}
             <div>
               <h2 className="font-semibold">
                 {activeConversation?.title || 'Selecciona una conversación'}
@@ -357,59 +285,63 @@ export default function ChatGPT() {
 
         {/* Messages */}
         <ScrollArea className="flex-1 p-4">
-          {activeConversation ? (
-            <div className="space-y-4 max-w-4xl mx-auto">
-              {activeConversation.messages.map((message) => (
-                <MessageComponent
-                  key={message.id}
-                  message={message}
-                  isUser={message.role === 'user'}
-                  userImage={user?.imageUrl}
-                  providerName={currentProvider?.name}
-                  formatTime={formatTime}
-                />
-              ))}
-              
-              {isTyping && (
-                <div className="flex gap-3 rounded-lg p-4 bg-gray-800/50 mr-8">
-                  <Avatar className="h-8 w-8 shrink-0">
-                    <AvatarFallback className="bg-green-900">
-                      <Bot className="h-4 w-4" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">
-                        {currentProvider?.name || 'Asistente'}
-                      </span>
-                      {typingMessage ? (
-                        <span className="text-xs text-gray-400">escribiendo...</span>
-                      ) : (
-                        <div className="flex gap-1">
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                          <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+          {activeConversation
+            ? (
+              <div className="space-y-4 max-w-4xl mx-auto">
+                {activeConversation.messages.map((message) => (
+                  <MessageComponent
+                    key={message.id}
+                    message={message}
+                    isUser={message.role === 'user'}
+                    userImage={user?.imageUrl}
+                    providerName={currentProvider?.name}
+                    formatTime={formatTime}
+                  />
+                ))}
+
+                {isTyping && (
+                  <div className="flex gap-3 rounded-lg p-4 bg-gray-800/50 mr-8">
+                    <Avatar className="h-8 w-8 shrink-0">
+                      <AvatarFallback className="bg-green-900">
+                        <Bot className="h-4 w-4" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">
+                          {currentProvider?.name || 'Asistente'}
+                        </span>
+                        {typingMessage
+                          ? (
+                            <span className="text-xs text-gray-400">escribiendo...</span>
+                          )
+                          : (
+                            <div className="flex gap-1">
+                              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                            </div>
+                          )}
+                      </div>
+                      {typingMessage && (
+                        <div className="prose prose-invert max-w-none">
+                          <MarkdownRenderer content={typingMessage + '|'} />
                         </div>
                       )}
                     </div>
-                    {typingMessage && (
-                      <div className="prose prose-invert max-w-none">
-                        <MarkdownRenderer content={typingMessage + '|'} />
-                      </div>
-                    )}
                   </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-full text-gray-400">
-              <div className="text-center">
-                <MessageSquare className="h-12 w-12 mx-auto mb-4" />
-                <p>Selecciona una conversación para comenzar</p>
+                )}
+                <div ref={messagesEndRef} />
               </div>
-            </div>
-          )}
+            )
+            : (
+              <div className="flex items-center justify-center h-full text-gray-400">
+                <div className="text-center">
+                  <MessageSquare className="h-12 w-12 mx-auto mb-4" />
+                  <p>Selecciona una conversación para comenzar</p>
+                </div>
+              </div>
+            )}
         </ScrollArea>
 
         {/* Input */}
@@ -420,7 +352,7 @@ export default function ChatGPT() {
                 {error}
               </div>
             )}
-            
+
             <div className="max-w-4xl mx-auto">
               <div className="flex gap-2">
                 <Input
@@ -429,37 +361,39 @@ export default function ChatGPT() {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessage();
+                      e.preventDefault()
+                      handleSendMessage()
                     }
                   }}
                   placeholder="Escribe tu mensaje..."
                   disabled={isTyping}
                   className="flex-1 bg-gray-800 border-gray-600 focus:border-blue-500"
                 />
-                
-                {isTyping ? (
-                  <Button 
-                    onClick={handleStopTyping}
-                    variant="outline"
-                    className="px-3"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                ) : (
-                  <Button 
-                    onClick={handleSendMessage}
-                    disabled={!input.trim()}
-                    className="px-3"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
-                )}
+
+                {isTyping
+                  ? (
+                    <Button
+                      onClick={handleStopTyping}
+                      variant="outline"
+                      className="px-3"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )
+                  : (
+                    <Button
+                      onClick={handleSendMessage}
+                      disabled={!input.trim()}
+                      className="px-3"
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  )}
               </div>
             </div>
           </div>
         )}
       </div>
     </div>
-  );
+  )
 }
