@@ -35,7 +35,7 @@ export const LLM_PROVIDERS: Record<string, LLMProvider> = {
     apiKeyFormat: 'sk-...',
     requiresApiKey: true,
     maxTokens: 4096,
-    supportsStreaming: true,
+    supportsStreaming: true
   },
   anthropic: {
     id: 'anthropic',
@@ -51,7 +51,7 @@ export const LLM_PROVIDERS: Record<string, LLMProvider> = {
     apiKeyFormat: 'sk-ant-...',
     requiresApiKey: true,
     maxTokens: 4096,
-    supportsStreaming: true,
+    supportsStreaming: true
   },
   groq: {
     id: 'groq',
@@ -68,7 +68,7 @@ export const LLM_PROVIDERS: Record<string, LLMProvider> = {
     apiKeyFormat: 'gsk_...',
     requiresApiKey: true,
     maxTokens: 8192,
-    supportsStreaming: true,
+    supportsStreaming: true
   },
   together: {
     id: 'together',
@@ -84,7 +84,7 @@ export const LLM_PROVIDERS: Record<string, LLMProvider> = {
     apiKeyFormat: '...',
     requiresApiKey: true,
     maxTokens: 4096,
-    supportsStreaming: true,
+    supportsStreaming: true
   },
   ollama: {
     id: 'ollama',
@@ -102,7 +102,7 @@ export const LLM_PROVIDERS: Record<string, LLMProvider> = {
     apiKeyFormat: 'no-key-required',
     requiresApiKey: false,
     maxTokens: 4096,
-    supportsStreaming: true,
+    supportsStreaming: true
   },
   perplexity: {
     id: 'perplexity',
@@ -117,7 +117,7 @@ export const LLM_PROVIDERS: Record<string, LLMProvider> = {
     apiKeyFormat: 'pplx-...',
     requiresApiKey: true,
     maxTokens: 4096,
-    supportsStreaming: true,
+    supportsStreaming: true
   },
   gemini: {
     id: 'gemini',
@@ -127,19 +127,19 @@ export const LLM_PROVIDERS: Record<string, LLMProvider> = {
     availableModels: [
       'gemini-2.5-flash',
       'gemini-2.5-flash-lite',
-      'gemini-2.5-pro',
+      'gemini-2.5-pro'
     ],
     apiKeyFormat: 'AIza...',
     requiresApiKey: true,
     maxTokens: 8192,
-    supportsStreaming: true,
+    supportsStreaming: true
   }
-};
+}
 
 export const getProviderById = (id: string): LLMProvider | undefined => {
-  return LLM_PROVIDERS[id];
-};
+  return LLM_PROVIDERS[id]
+}
 
 export const getAllProviders = (): LLMProvider[] => {
-  return Object.values(LLM_PROVIDERS);
-};
+  return Object.values(LLM_PROVIDERS)
+}

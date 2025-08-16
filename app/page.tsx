@@ -1,21 +1,28 @@
 'use client'
 
+import DashboardHeader from '@/components/dashboard-header'
 import { MessageComponent } from '@/components/message-component'
 import { Sidebar } from '@/components/sidebar'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useConversations } from '@/context/conversations-context'
 import { getProviderById } from '@/lib/llm-providers'
 import { useUser } from '@clerk/nextjs'
 import { Bot, MessageSquare, Send, X } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 interface Message {
   id: string;
   content: string;
   role: 'user' | 'assistant';
   timestamp: Date;
+}
+export interface llmConfig {
+  providerId: string;
+  model: string;
+  temperature: number;
+  maxTokens: number;
+  customBaseURL?: string;
 }
 
 export default function ChatGPT () {
@@ -75,7 +82,12 @@ export default function ChatGPT () {
 
   useEffect(() => {
     scrollToBottomThrottled()
-  }, [activeConversation?.messages?.length, isTyping, scrollToBottomThrottled])
+  }, [
+    activeConversation?.messages?.length,
+    isTyping,
+    typingMessage, // <-- Añade esta dependencia
+    scrollToBottomThrottled
+  ])
 
   const generateTitle = useCallback((firstMessage: string): string => {
     return firstMessage.length > 30
@@ -257,30 +269,13 @@ export default function ChatGPT () {
     <div className="flex h-screen bg-black text-white">
       <Sidebar ref={inputRef} setError={setError} />
       {/* Main content */}
-      <div className="flex-1 flex flex-col">
+      <main className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
-          <div className="flex items-center space-x-3">
-            {/* <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSidebarOpen(true)}
-              className="md:hidden"
-            >
-              <Menu className="h-4 w-4" />
-            </Button> */}
-            <div>
-              <h2 className="font-semibold">
-                {activeConversation?.title || 'Selecciona una conversación'}
-              </h2>
-              {currentProvider && (
-                <p className="text-sm text-gray-400">
-                  {currentProvider.name} - {llmConfig.model}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
+        <DashboardHeader
+          activeConversation={activeConversation}
+          currentProvider={currentProvider}
+          llmConfig={llmConfig}
+        />
 
         {/* Messages */}
         <ScrollArea className="flex-1 p-4">
@@ -333,20 +328,29 @@ export default function ChatGPT () {
 
             <div className="max-w-4xl mx-auto">
               <div className="flex gap-2">
-                <Input
-                  ref={inputRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyPress={(e) => {
+                <div
+                  ref={inputRef as React.RefObject<HTMLDivElement>}
+                  contentEditable={!isTyping}
+                  suppressContentEditableWarning
+                  className="flex-1 min-h-[2.5rem] max-h-40 overflow-y-auto bg-gray-800 border border-gray-600 rounded px-3 py-2 focus:outline-none focus:border-blue-500"
+                  style={{
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word'
+                  }}
+                  placeholder="Escribe tu mensaje..."
+                  aria-label="Prompt"
+                  spellCheck={true}
+                  onInput={e => setInput((e.target as HTMLDivElement).textContent || '')}
+                  onKeyDown={e => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault()
                       handleSendMessage()
                     }
                   }}
-                  placeholder="Escribe tu mensaje..."
-                  disabled={isTyping}
-                  className="flex-1 bg-gray-800 border-gray-600 focus:border-blue-500"
-                />
+                  tabIndex={0}
+                >
+                  {input}
+                </div>
 
                 {isTyping
                   ? (
@@ -371,7 +375,7 @@ export default function ChatGPT () {
             </div>
           </div>
         )}
-      </div>
+      </main>
     </div>
   )
 }

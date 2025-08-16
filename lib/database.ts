@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase } from './supabase'
 
 export interface Message {
   id: string;
@@ -13,9 +13,23 @@ export interface Conversation {
   messages: Message[];
   lastUpdated: Date;
 }
+interface DBConversation {
+  id: string
+  user_id: string
+  title: string
+  updated_at: string
+}
+
+interface DBMessage {
+  id: string
+  conversation_id: string
+  content: string
+  role: 'user' | 'assistant'
+  timestamp: string
+}
 
 // Convertir de formato DB a formato de la aplicación
-const convertDbToAppConversation = (dbConversation: any, dbMessages: any[]): Conversation => {
+const convertDbToAppConversation = (dbConversation: DBConversation, dbMessages: DBMessage[]): Conversation => {
   return {
     id: dbConversation.id,
     title: dbConversation.title,
@@ -26,8 +40,8 @@ const convertDbToAppConversation = (dbConversation: any, dbMessages: any[]): Con
       role: msg.role,
       timestamp: new Date(msg.timestamp)
     }))
-  };
-};
+  }
+}
 
 // Obtener todas las conversaciones del usuario
 export const getUserConversations = async (userId: string): Promise<Conversation[]> => {
@@ -37,42 +51,42 @@ export const getUserConversations = async (userId: string): Promise<Conversation
       .from('conversations')
       .select('*')
       .eq('user_id', userId)
-      .order('updated_at', { ascending: false });
+      .order('updated_at', { ascending: false })
 
-    if (convError) throw convError;
+    if (convError) throw convError
 
     if (!conversations || conversations.length === 0) {
-      return [];
+      return []
     }
 
     // Obtener todos los mensajes para estas conversaciones
-    const conversationIds = conversations.map(c => c.id);
+    const conversationIds = conversations.map(c => c.id)
     const { data: messages, error: msgError } = await supabase
       .from('messages')
       .select('*')
       .in('conversation_id', conversationIds)
-      .order('timestamp', { ascending: true });
+      .order('timestamp', { ascending: true })
 
-    if (msgError) throw msgError;
+    if (msgError) throw msgError
 
     // Agrupar mensajes por conversación
     const messagesByConversation = (messages || []).reduce((acc, msg) => {
       if (!acc[msg.conversation_id]) {
-        acc[msg.conversation_id] = [];
+        acc[msg.conversation_id] = []
       }
-      acc[msg.conversation_id].push(msg);
-      return acc;
-    }, {} as Record<string, any[]>);
+      acc[msg.conversation_id].push(msg)
+      return acc
+    }, {} as Record<string, DBMessage[]>)
 
     // Combinar conversaciones con sus mensajes
-    return conversations.map(conv => 
+    return conversations.map(conv =>
       convertDbToAppConversation(conv, messagesByConversation[conv.id] || [])
-    );
+    )
   } catch (error) {
-    console.error('Error fetching conversations:', error);
-    return [];
+    console.error('Error fetching conversations:', error)
+    return []
   }
-};
+}
 
 // Crear una nueva conversación
 export const createConversation = async (userId: string, title: string): Promise<string | null> => {
@@ -85,39 +99,39 @@ export const createConversation = async (userId: string, title: string): Promise
         updated_at: new Date().toISOString()
       })
       .select()
-      .single();
+      .single()
 
-    if (error) throw error;
-    return data.id;
+    if (error) throw error
+    return data.id
   } catch (error) {
-    console.error('Error creating conversation:', error);
-    return null;
+    console.error('Error creating conversation:', error)
+    return null
   }
-};
+}
 
 // Actualizar el título de una conversación
 export const updateConversationTitle = async (conversationId: string, title: string): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from('conversations')
-      .update({ 
+      .update({
         title,
         updated_at: new Date().toISOString()
       })
-      .eq('id', conversationId);
+      .eq('id', conversationId)
 
-    if (error) throw error;
-    return true;
+    if (error) throw error
+    return true
   } catch (error) {
-    console.error('Error updating conversation title:', error);
-    return false;
+    console.error('Error updating conversation title:', error)
+    return false
   }
-};
+}
 
 // Agregar un mensaje a una conversación
 export const addMessage = async (
-  conversationId: string, 
-  role: 'user' | 'assistant', 
+  conversationId: string,
+  role: 'user' | 'assistant',
   content: string
 ): Promise<string | null> => {
   try {
@@ -130,22 +144,22 @@ export const addMessage = async (
         timestamp: new Date().toISOString()
       })
       .select()
-      .single();
+      .single()
 
-    if (error) throw error;
+    if (error) throw error
 
     // Actualizar el timestamp de la conversación
     await supabase
       .from('conversations')
       .update({ updated_at: new Date().toISOString() })
-      .eq('id', conversationId);
+      .eq('id', conversationId)
 
-    return data.id;
+    return data.id
   } catch (error) {
-    console.error('Error adding message:', error);
-    return null;
+    console.error('Error adding message:', error)
+    return null
   }
-};
+}
 
 // Eliminar una conversación y todos sus mensajes
 export const deleteConversation = async (conversationId: string): Promise<boolean> => {
@@ -154,43 +168,43 @@ export const deleteConversation = async (conversationId: string): Promise<boolea
     const { error: msgError } = await supabase
       .from('messages')
       .delete()
-      .eq('conversation_id', conversationId);
+      .eq('conversation_id', conversationId)
 
-    if (msgError) throw msgError;
+    if (msgError) throw msgError
 
     // Luego eliminar la conversación
     const { error: convError } = await supabase
       .from('conversations')
       .delete()
-      .eq('id', conversationId);
+      .eq('id', conversationId)
 
-    if (convError) throw convError;
-    return true;
+    if (convError) throw convError
+    return true
   } catch (error) {
-    console.error('Error deleting conversation:', error);
-    return false;
+    console.error('Error deleting conversation:', error)
+    return false
   }
-};
+}
 
 // Migrar conversaciones locales a la base de datos
 export const migrateLocalConversations = async (
-  userId: string, 
+  userId: string,
   localConversations: Conversation[]
 ): Promise<boolean> => {
   try {
     for (const conv of localConversations) {
       // Crear conversación
-      const conversationId = await createConversation(userId, conv.title);
-      if (!conversationId) continue;
+      const conversationId = await createConversation(userId, conv.title)
+      if (!conversationId) continue
 
       // Agregar mensajes
       for (const msg of conv.messages) {
-        await addMessage(conversationId, msg.role, msg.content);
+        await addMessage(conversationId, msg.role, msg.content)
       }
     }
-    return true;
+    return true
   } catch (error) {
-    console.error('Error migrating conversations:', error);
-    return false;
+    console.error('Error migrating conversations:', error)
+    return false
   }
-};
+}
