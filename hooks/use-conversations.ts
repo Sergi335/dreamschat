@@ -74,31 +74,41 @@ export const useConversations = (): UseConversationsReturn => {
     setIsLoading(true)
     setError(null)
 
+    // 1. Crear conversación optimista
+    const tempId = `temp-${Date.now()}`
+    const optimisticConversation: Conversation = {
+      id: tempId,
+      title: title || 'Nueva conversación',
+      lastUpdated: new Date(),
+      messages: []
+    }
+    setConversations(prev => [optimisticConversation, ...prev])
+    setActiveConversationId(tempId)
+
     try {
+      // 2. Llamada real al backend
       const response = await fetch('/api/conversations', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          title: title || 'Nueva conversación'
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: title || 'Nueva conversación' })
       })
 
-      if (!response.ok) {
-        throw new Error('Failed to create conversation')
-      }
+      if (!response.ok) throw new Error('Failed to create conversation')
 
       const newConversation: Conversation = await response.json()
 
-      // Añadir la nueva conversación al estado
-      setConversations(prev => [newConversation, ...prev])
-
-      // Devolver el ID de la nueva conversación
+      // 3. Reemplaza la conversación optimista por la real
+      setConversations(prev =>
+        prev.map(conv =>
+          conv.id === tempId ? newConversation : conv
+        )
+      )
+      setActiveConversationId(newConversation.id)
       return newConversation.id
     } catch (err) {
-      const errorObj = err as Error
-      setError(errorObj.message)
+      // Si falla, elimina la conversación optimista
+      setConversations(prev => prev.filter(conv => conv.id !== tempId))
+      setError((err as Error).message)
       return null
     } finally {
       setIsLoading(false)

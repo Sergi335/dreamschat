@@ -5,7 +5,7 @@ const inter = Inter({ subsets: ['latin'] })
 export default function RootLayout ({ children }: { children: React.ReactNode }) {
   return (
     <html>
-      <body className={`${inter.className} dark bg-neutral-900 text-neutral-100 font-sans leading-relaxed selection:bg-neutral-700/60`}>
+      <body className={`${inter.className} dark bg-primary text-neutral-100 font-sans leading-relaxed selection:bg-neutral-700/60`}>
         {children}
       </body>
     </html>

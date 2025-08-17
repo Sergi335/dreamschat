@@ -88,11 +88,6 @@ export default function Dashboard () {
     }
   }, [activeConversationId, activeConversation, optimisticMessages])
 
-  // Scroll automático solo cuando cambia el número de mensajes o typingMessage
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [localMessages.length, typingMessage])
-
   function generateTitle (firstMessage: string): string {
     return firstMessage.length > 30
       ? firstMessage.substring(0, 30) + '...'
@@ -236,9 +231,16 @@ export default function Dashboard () {
       seen.add(key)
     }
   }
+  const lastMessageKey = uniqueMessages.length
+    ? `${uniqueMessages[uniqueMessages.length - 1].id}-${uniqueMessages[uniqueMessages.length - 1].role}-${String(uniqueMessages[uniqueMessages.length - 1].timestamp)}`
+    : ''
 
+  // Scroll automático solo cuando cambia el número de mensajes o typingMessage
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [lastMessageKey])
   return (
-    <div className="flex h-screen bg-black text-white">
+    <div className="flex h-screen text-white">
       <Sidebar ref={inputRef} setError={setError} />
       <main className="flex-1 flex flex-col">
         <DashboardHeader
@@ -275,7 +277,7 @@ export default function Dashboard () {
         </ScrollArea>
 
         {activeConversation && (
-          <div className="p-4 border-t border-gray-700">
+          <div className="pt-4 pb-12 px-4">
             {error && (
               <div className="mb-4 p-3 bg-red-900/20 border border-red-700 rounded-lg text-red-200">
                 {error}

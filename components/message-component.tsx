@@ -25,7 +25,7 @@ export const MessageComponent = memo(({
   isUser
     ? (
       <div className={cn(
-        'flex gap-3 rounded-lg p-4 justify-end items-center'
+        'flex flex-col-reverse gap-3 rounded-lg p-4 justify-end items-end'
       )}>
         <div>
           <div className="flex items-center justify-end gap-2">
@@ -47,7 +47,7 @@ export const MessageComponent = memo(({
     )
     : (
       <div className={cn(
-        'flex gap-3 rounded-lg p-4 justify-end'
+        'flex flex-col gap-3 rounded-lg p-4 justify-end'
       )}>
         <Avatar className="h-8 w-8 shrink-0">
           <AvatarFallback className="bg-green-900">

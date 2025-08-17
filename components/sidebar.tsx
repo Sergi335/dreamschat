@@ -72,11 +72,11 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(
 
     return (
       <div className={cn(
-        'flex flex-col w-64 bg-gray-900 border-r border-gray-700 transition-all duration-300',
+        'flex flex-col w-64 border-r border-gray-700 transition-all duration-300',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
       )}>
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+        <div className="flex items-center justify-between p-4 min-h-20">
           <h1 className="text-xl font-bold">Dream Reader</h1>
           <Button
             variant="ghost"
@@ -92,7 +92,7 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(
         <div className="p-4">
           <Button
             onClick={handleNewConversation}
-            className="w-full bg-gray-800 hover:bg-gray-700 border border-gray-600"
+            className="w-full bg-accent hover:bg-gray-700 border border-gray-600"
             disabled={isLoading}
           >
             <Plus className="h-4 w-4 mr-2" />
