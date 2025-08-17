@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useConversations } from '@/context/conversations-context'
 import { cn } from '@/lib/utils'
-import { useClerk, useUser } from '@clerk/nextjs'
+import { SignOutButton, useUser } from '@clerk/nextjs'
 import { LogOut, Plus, Trash2, User, X } from 'lucide-react'
 import React, { forwardRef, useCallback, useState } from 'react'
 
@@ -15,7 +15,7 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(
   ({ setError }, inputRef) => {
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const { user } = useUser()
-    const { signOut } = useClerk()
+    // const { signOut } = useClerk()
 
     const {
       conversations,
@@ -146,9 +146,9 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(
                 </p>
               </div>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => signOut()}>
-              <LogOut className="h-4 w-4" />
-            </Button>
+            <SignOutButton redirectUrl="/es">
+              <button><LogOut className="h-4 w-4" /></button>
+            </SignOutButton>
           </div>
         </div>
       </div>

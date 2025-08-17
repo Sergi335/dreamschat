@@ -6,10 +6,10 @@ export const MarkdownRenderer = memo(({ content }: { content: string }) => (
   <Markdown
     remarkPlugins={[remarkGfm]}
     components={{
-      p: ({ children }) => <p style={{ margin: '0.5rem 0' }}>{children}</p>,
-      ul: ({ children }) => <ul style={{ margin: '0.5rem 0', paddingLeft: '1.5rem', listStyleType: 'disc' }}>{children}</ul>,
-      ol: ({ children }) => <ol style={{ margin: '0.5rem 0', paddingLeft: '1.5rem', listStyleType: 'decimal' }}>{children}</ol>,
-      li: ({ children }) => <li style={{ margin: '0.25rem 0' }}>{children}</li>,
+      p: ({ children }) => <p className="text-neutral-400" style={{ margin: '0.5rem 0' }}>{children}</p>,
+      ul: ({ children }) => <ul className="text-neutral-400" style={{ margin: '0.5rem 0', paddingLeft: '1.5rem', listStyleType: 'disc' }}>{children}</ul>,
+      ol: ({ children }) => <ol className="text-neutral-400" style={{ margin: '0.5rem 0', paddingLeft: '1.5rem', listStyleType: 'decimal' }}>{children}</ol>,
+      li: ({ children }) => <li className="text-neutral-400" style={{ margin: '0.25rem 0' }}>{children}</li>,
       table: ({ children }) => (
         <table style={{
           borderCollapse: 'collapse',

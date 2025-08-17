@@ -1,3 +1,6 @@
+const createNextIntlPlugin = require('next-intl/plugin')
+
+const withNextIntl = createNextIntlPlugin()
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
@@ -6,4 +9,4 @@ const nextConfig = {
   images: { unoptimized: true }
 }
 
-module.exports = nextConfig
+module.exports = withNextIntl(nextConfig)

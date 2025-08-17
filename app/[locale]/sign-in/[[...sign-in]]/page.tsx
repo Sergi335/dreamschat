@@ -1,6 +1,10 @@
-import { SignIn } from '@clerk/nextjs';
+'use client'
+import { SignIn } from '@clerk/nextjs'
+import { useParams } from 'next/navigation'
 
-export default function Page() {
+export default function Page () {
+  const params = useParams()
+  const locale = typeof params.locale === 'string' ? params.locale : Array.isArray(params.locale) ? params.locale[0] : 'es'
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center">
       <div className="max-w-md w-full space-y-8">
@@ -12,8 +16,11 @@ export default function Page() {
             Access your AI conversations and chat history
           </p>
         </div>
-        <SignIn />
+        <SignIn
+          signUpUrl={`/${locale}/sign-up`}
+          fallbackRedirectUrl={`/${locale}/dashboard`}
+        />
       </div>
     </div>
-  );
+  )
 }
