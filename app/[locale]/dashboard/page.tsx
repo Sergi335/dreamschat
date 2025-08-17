@@ -9,12 +9,11 @@ import {
 import DashboardHeader from '@/components/dashboard-header'
 import { MessageComponent } from '@/components/message-component'
 import { Sidebar } from '@/components/sidebar'
-import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useConversations } from '@/context/conversations-context'
 import { getProviderById } from '@/lib/llm-providers'
 import { useUser } from '@clerk/nextjs'
-import { Bot, MessageSquare, Mic } from 'lucide-react'
+import { MessageSquare, Mic } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 // Cambia la interfaz Message:
@@ -24,6 +23,13 @@ interface Message {
   role: 'user' | 'assistant';
   timestamp: Date;
   optimisticId?: string; // <-- Nuevo campo opcional
+}
+const llmConfig = {
+  providerId: process.env.NEXT_PUBLIC_LLM_PROVIDER || 'openai',
+  model: process.env.NEXT_PUBLIC_LLM_MODEL || 'gpt-3.5-turbo',
+  temperature: parseFloat(process.env.NEXT_PUBLIC_LLM_TEMPERATURE || '0.7'),
+  maxTokens: parseInt(process.env.NEXT_PUBLIC_LLM_MAX_TOKENS || '1000'),
+  customBaseURL: process.env.NEXT_PUBLIC_LLM_BASE_URL || undefined
 }
 
 export default function Dashboard () {
@@ -46,14 +52,6 @@ export default function Dashboard () {
   const shouldStopRef = useRef(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-
-  const llmConfig = {
-    providerId: process.env.NEXT_PUBLIC_LLM_PROVIDER || 'openai',
-    model: process.env.NEXT_PUBLIC_LLM_MODEL || 'gpt-3.5-turbo',
-    temperature: parseFloat(process.env.NEXT_PUBLIC_LLM_TEMPERATURE || '0.7'),
-    maxTokens: parseInt(process.env.NEXT_PUBLIC_LLM_MAX_TOKENS || '1000'),
-    customBaseURL: process.env.NEXT_PUBLIC_LLM_BASE_URL || undefined
-  }
 
   useEffect(() => {
     if (isLoaded && isSignedIn && conversations.length === 0 && !isLoading) {
@@ -178,10 +176,8 @@ export default function Dashboard () {
       setTypingMessage('')
 
       // Guarda ambos mensajes en la base de datos
-      await Promise.all([
-        addMessage(activeConversationId!, userMessage.role, userMessage.content),
-        addMessage(activeConversationId!, 'assistant', aiResponseContent)
-      ])
+      await addMessage(activeConversationId!, userMessage.role, userMessage.content)
+      await addMessage(activeConversationId!, 'assistant', aiResponseContent)
 
       // Elimina los mensajes optimistas que ya están en la base de datos
       setOptimisticMessages(prev =>
@@ -194,8 +190,12 @@ export default function Dashboard () {
       if (isFirstMessage) {
         await updateConversationTitle(activeConversationId!, generateTitle(userMessage.content))
       }
-    } catch (error: any) {
-      setError(error.message || 'Error al enviar mensaje')
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setError(error.message || 'Error al enviar mensaje')
+      } else {
+        setError('Error al enviar mensaje')
+      }
     } finally {
       setTypingMessage('')
       setIsTyping(false)
@@ -237,46 +237,6 @@ export default function Dashboard () {
     }
   }
 
-  if (!isLoaded) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-black text-white">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
-          <p>Cargando...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!isSignedIn) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-black text-white">
-        <div className="text-center max-w-md mx-auto p-8">
-          <Bot className="h-16 w-16 mx-auto mb-6 text-blue-400" />
-          <h1 className="text-3xl font-bold mb-4">Dream Reader</h1>
-          <p className="text-gray-300 mb-8">
-            Tu asistente de IA personalizado con múltiples modelos de lenguaje
-          </p>
-          <div className="space-y-4">
-            <Button
-              onClick={() => { window.location.href = '/sign-in' }}
-              className="w-full bg-blue-600 hover:bg-blue-700"
-            >
-              Iniciar Sesión
-            </Button>
-            <Button
-              onClick={() => { window.location.href = '/sign-up' }}
-              variant="outline"
-              className="w-full"
-            >
-              Registrarse
-            </Button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="flex h-screen bg-black text-white">
       <Sidebar ref={inputRef} setError={setError} />
@@ -293,7 +253,7 @@ export default function Dashboard () {
               <div className="space-y-4 max-w-4xl mx-auto">
                 {uniqueMessages.map((message) => (
                   <MessageComponent
-                    key={message.id}
+                    key={`${message.id}-${message.role}-${String(message.timestamp)}`}
                     message={message}
                     isUser={message.role === 'user'}
                     userImage={user?.imageUrl}
