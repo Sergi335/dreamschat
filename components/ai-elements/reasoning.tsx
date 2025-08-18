@@ -1,12 +1,12 @@
 'use client'
 
-import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger
 } from '@/components/ui/collapsible'
 import { cn } from '@/lib/utils'
+import { useControllableState } from '@radix-ui/react-use-controllable-state'
 import { BrainIcon, ChevronDownIcon } from 'lucide-react'
 import type { ComponentProps } from 'react'
 import { createContext, memo, useContext, useEffect, useState } from 'react'
@@ -119,7 +119,7 @@ export type ReasoningTriggerProps = ComponentProps<
 export const ReasoningTrigger = memo(
   ({
     className,
-    title = 'Reasoning',
+    // title = 'Reasoning',
     children,
     ...props
   }: ReasoningTriggerProps) => {

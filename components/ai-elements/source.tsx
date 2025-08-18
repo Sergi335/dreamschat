@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  Collapsible,
+  // Collapsible,
   CollapsibleContent,
   CollapsibleTrigger
 } from '@/components/ui/collapsible'
@@ -11,19 +11,19 @@ import type { ComponentProps } from 'react'
 
 export type SourcesProps = ComponentProps<'div'>;
 
-export const Sources = ({ className, ...props }: SourcesProps) => (
-  <Collapsible
-    className={cn('not-prose mb-4 text-primary text-xs', className)}
-    {...props}
-  />
-)
+// export const Sources = ({ className, ...props }: SourcesProps) => (
+//   <Collapsible
+//     className={cn('not-prose mb-4 text-primary text-xs', className)}
+//     {...props}
+//   />
+// )
 
 export type SourcesTriggerProps = ComponentProps<typeof CollapsibleTrigger> & {
   count: number;
 };
 
 export const SourcesTrigger = ({
-  className,
+  // className,
   count,
   children,
   ...props

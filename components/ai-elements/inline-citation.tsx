@@ -3,18 +3,20 @@
 import { Badge } from '@/components/ui/badge'
 import {
   Carousel,
-  CarouselContent,
+  // CarouselContent,
   CarouselItem,
   useCarousel
 } from '@/components/ui/carousel'
 import {
   HoverCard,
-  HoverCardContent,
+  // HoverCardContent,
   HoverCardTrigger
 } from '@/components/ui/hover-card'
 import { cn } from '@/lib/utils'
 import { ArrowLeftIcon, ArrowRightIcon } from 'lucide-react'
 import { type ComponentProps, useCallback, useEffect, useState } from 'react'
+
+import { forwardRef } from 'react'
 
 export type InlineCitationProps = ComponentProps<'span'>;
 
@@ -77,12 +79,16 @@ export const InlineCitationCardTrigger = ({
 
 export type InlineCitationCardBodyProps = ComponentProps<'div'>;
 
-export const InlineCitationCardBody = ({
-  className,
-  ...props
-}: InlineCitationCardBodyProps) => (
-  <HoverCardContent className={cn('relative w-80 p-0', className)} {...props} />
-)
+// export const InlineCitationCardBody = forwardRef<HTMLDivElement, InlineCitationCardBodyProps>(
+//   ({ className, ...props }, ref) => (
+//     <HoverCardContent
+//       ref={ref as React.Ref<HTMLDivElement>}
+//       className={cn('relative w-80 p-0', className)}
+//       {...props}
+//     />
+//   )
+// )
+// InlineCitationCardBody.displayName = 'InlineCitationCardBody'
 
 export type InlineCitationCarouselProps = ComponentProps<typeof Carousel>;
 
@@ -95,18 +101,18 @@ export const InlineCitationCarousel = ({
 
 export type InlineCitationCarouselContentProps = ComponentProps<'div'>;
 
-export const InlineCitationCarouselContent = (
-  props: InlineCitationCarouselContentProps
-) => <CarouselContent {...props} />
+// export const InlineCitationCarouselContent = (
+//   props: InlineCitationCarouselContentProps
+// ) => <CarouselContent {...props} />
 
-export type InlineCitationCarouselItemProps = ComponentProps<'div'>;
+export type InlineCitationCarouselItemProps = ComponentProps<typeof CarouselItem>;
 
-export const InlineCitationCarouselItem = ({
-  className,
-  ...props
-}: InlineCitationCarouselItemProps) => (
-  <CarouselItem className={cn('w-full space-y-2 p-4', className)} {...props} />
+export const InlineCitationCarouselItem = forwardRef<HTMLDivElement, InlineCitationCarouselItemProps>(
+  ({ className, ...props }, ref) => (
+    <CarouselItem ref={ref} className={cn('w-full space-y-2 p-4', className)} {...props} />
+  )
 )
+InlineCitationCarouselItem.displayName = 'InlineCitationCarouselItem'
 
 export type InlineCitationCarouselHeaderProps = ComponentProps<'div'>;
 
