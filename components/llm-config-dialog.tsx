@@ -1,16 +1,16 @@
-"use client";
+'use client'
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getAllProviders, getProviderById, LLMConfig, LLMProvider } from '@/lib/llm-providers';
-import { ExternalLink, Info, Key, Settings } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Slider } from '@/components/ui/slider'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { getAllProviders, getProviderById, LLMConfig, LLMProvider } from '@/lib/llm-providers'
+import { ExternalLink, Info, Key, Settings } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 interface LLMConfigDialogProps {
   open: boolean;
@@ -19,75 +19,75 @@ interface LLMConfigDialogProps {
   currentConfig?: LLMConfig;
 }
 
-export function LLMConfigDialog({ open, onOpenChange, onConfigSubmit, currentConfig }: LLMConfigDialogProps) {
+export function LLMConfigDialog ({ open, onOpenChange, onConfigSubmit, currentConfig }: LLMConfigDialogProps) {
   const [config, setConfig] = useState<LLMConfig>({
     providerId: 'openai',
     model: 'gpt-3.5-turbo',
     apiKey: '',
     temperature: 0.7,
-    maxTokens: 1000,
-  });
+    maxTokens: 1000
+  })
 
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const providers = getAllProviders();
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const providers = getAllProviders()
 
   useEffect(() => {
     if (currentConfig) {
-      setConfig(currentConfig);
+      setConfig(currentConfig)
     }
-  }, [currentConfig]);
+  }, [currentConfig])
 
-  const selectedProvider = getProviderById(config.providerId);
+  const selectedProvider = getProviderById(config.providerId)
 
   const handleProviderChange = (providerId: string) => {
-    const provider = getProviderById(providerId);
+    const provider = getProviderById(providerId)
     if (provider) {
       setConfig(prev => ({
         ...prev,
         providerId,
         model: provider.defaultModel,
-        maxTokens: provider.maxTokens || 1000,
-      }));
+        maxTokens: provider.maxTokens || 1000
+      }))
     }
-  };
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
+    e.preventDefault()
+
     if (selectedProvider?.requiresApiKey && !config.apiKey?.trim()) {
-      alert(`API key is required for ${selectedProvider.name}`);
-      return;
+      alert(`API key is required for ${selectedProvider.name}`)
+      return
     }
 
-    onConfigSubmit(config);
-    onOpenChange(false);
-  };
+    onConfigSubmit(config)
+    onOpenChange(false)
+  }
 
   const getProviderInfo = (provider: LLMProvider) => {
     const info: { [key: string]: string } = {
-      openai: "Official OpenAI API. Requires API key from platform.openai.com",
-      anthropic: "Claude models via Anthropic API. Requires API key from console.anthropic.com",
-      groq: "Ultra-fast inference. Get API key from console.groq.com",
-      together: "Open source models. Get API key from api.together.xyz",
-      ollama: "Run models locally. Install Ollama and start the service",
-      perplexity: "Search-enhanced models. Get API key from perplexity.ai",
-      gemini: "Google's multimodal AI. Get API key from Google AI Studio"
-    };
-    return info[provider.id] || "Configure your LLM provider";
-  };
+      openai: 'Official OpenAI API. Requires API key from platform.openai.com',
+      anthropic: 'Claude models via Anthropic API. Requires API key from console.anthropic.com',
+      groq: 'Ultra-fast inference. Get API key from console.groq.com',
+      together: 'Open source models. Get API key from api.together.xyz',
+      ollama: 'Run models locally. Install Ollama and start the service',
+      perplexity: 'Search-enhanced models. Get API key from perplexity.ai',
+      gemini: 'Google\'s multimodal AI. Get API key from Google AI Studio'
+    }
+    return info[provider.id] || 'Configure your LLM provider'
+  }
 
   const getProviderUrl = (provider: LLMProvider) => {
     const urls: { [key: string]: string } = {
-      openai: "https://platform.openai.com/api-keys",
-      anthropic: "https://console.anthropic.com/",
-      groq: "https://console.groq.com/keys",
-      together: "https://api.together.xyz/settings/api-keys",
-      ollama: "https://ollama.ai/",
-      perplexity: "https://www.perplexity.ai/settings/api",
-      gemini: "https://aistudio.google.com/app/apikey"
-    };
-    return urls[provider.id];
-  };
+      openai: 'https://platform.openai.com/api-keys',
+      anthropic: 'https://console.anthropic.com/',
+      groq: 'https://console.groq.com/keys',
+      together: 'https://api.together.xyz/settings/api-keys',
+      ollama: 'https://ollama.ai/',
+      perplexity: 'https://www.perplexity.ai/settings/api',
+      gemini: 'https://aistudio.google.com/app/apikey'
+    }
+    return urls[provider.id]
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -123,8 +123,8 @@ export function LLMConfigDialog({ open, onOpenChange, onConfigSubmit, currentCon
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-600">
                     {providers.map((provider) => (
-                      <SelectItem 
-                        key={provider.id} 
+                      <SelectItem
+                        key={provider.id}
                         value={provider.id}
                         className="text-white hover:bg-gray-700 focus:bg-gray-700"
                       >
@@ -196,8 +196,8 @@ export function LLMConfigDialog({ open, onOpenChange, onConfigSubmit, currentCon
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-600">
                     {selectedProvider?.availableModels.map((model) => (
-                      <SelectItem 
-                        key={model} 
+                      <SelectItem
+                        key={model}
                         value={model}
                         className="text-white hover:bg-gray-700 focus:bg-gray-700"
                       >
@@ -293,5 +293,5 @@ export function LLMConfigDialog({ open, onOpenChange, onConfigSubmit, currentCon
         </div>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

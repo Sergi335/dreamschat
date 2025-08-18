@@ -5,6 +5,7 @@ import { useConversations } from '@/context/conversations-context'
 import { cn } from '@/lib/utils'
 import { SignOutButton, useUser } from '@clerk/nextjs'
 import { LogOut, Plus, Trash2, User, X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import React, { forwardRef, useCallback, useState } from 'react'
 
 interface SidebarProps {
@@ -15,6 +16,7 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(
   ({ setError }, inputRef) => {
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const { user } = useUser()
+    const t = useTranslations()
     // const { signOut } = useClerk()
 
     const {
@@ -96,7 +98,7 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(
             disabled={isLoading}
           >
             <Plus className="h-4 w-4 mr-2" />
-            Nueva conversación
+            {t('newConversation')}
           </Button>
         </div>
 
@@ -104,26 +106,19 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(
         <ScrollArea className="flex-1 px-4">
           <div className="space-y-2">
             {conversations.map((conversation) => (
-              <div key={conversation.id} className="group relative">
+              <div key={conversation.id} className="relative">
                 <Button
                   variant={conversation.id === activeConversationId ? 'secondary' : 'ghost'}
-                  className="w-full justify-start text-left h-auto p-3 pr-12"
+                  className="w-full justify-start text-left h-auto p-3 group hover:bg-secondary"
                   onClick={() => setActiveConversationId(conversation.id)}
                 >
                   <div className="flex-1 truncate">
-                    <div className="font-medium truncate">{conversation.title}</div>
+                    <div className="font-medium truncate max-w-32">{conversation.title}</div>
                     <div className="text-xs text-gray-400 mt-1">
                       {conversation.messages.length} mensajes
                     </div>
                   </div>
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0 text-gray-400 hover:text-red-400"
-                  onClick={(e) => handleDeleteConversation(conversation.id, e)}
-                >
-                  <Trash2 className="h-3 w-3" />
+                  <Trash2 onClick={(e) => handleDeleteConversation(conversation.id, e)} className="h-4 w-4 group-hover:block hidden hover:text-red-400" />
                 </Button>
               </div>
             ))}

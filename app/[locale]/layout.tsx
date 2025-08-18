@@ -2,7 +2,6 @@ import { ConversationsProvider } from '@/context/conversations-context'
 import { ClerkProvider } from '@clerk/nextjs'
 import type { Metadata } from 'next'
 import { NextIntlClientProvider } from 'next-intl'
-import { getLocale } from 'next-intl/server'
 // import { Inter } from 'next/font/google'
 import { notFound } from 'next/navigation'
 import React from 'react'
@@ -16,11 +15,13 @@ export const metadata: Metadata = {
 }
 
 export default async function RootLayout ({
-  children
+  children,
+  params
 }: {
   children: React.ReactNode;
+  params: { locale: string }
 }) {
-  const locale = await getLocale()
+  const { locale } = await params
 
   let messages
   try {
@@ -31,15 +32,11 @@ export default async function RootLayout ({
 
   return (
     <ClerkProvider>
-
       <ConversationsProvider>
-
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
         </NextIntlClientProvider>
-
       </ConversationsProvider>
-
     </ClerkProvider>
   )
 }

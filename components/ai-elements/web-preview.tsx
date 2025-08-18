@@ -1,22 +1,22 @@
-'use client';
+'use client'
 
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/button'
 import {
   Collapsible,
   CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import { Input } from '@/components/ui/input';
+  CollapsibleTrigger
+} from '@/components/ui/collapsible'
+import { Input } from '@/components/ui/input'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
-import { ChevronDownIcon } from 'lucide-react';
-import type { ComponentProps, ReactNode } from 'react';
-import { createContext, useContext, useState } from 'react';
+  TooltipTrigger
+} from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
+import { ChevronDownIcon } from 'lucide-react'
+import type { ComponentProps, ReactNode } from 'react'
+import { createContext, useContext, useState } from 'react'
 
 export type WebPreviewContextValue = {
   url: string;
@@ -25,15 +25,15 @@ export type WebPreviewContextValue = {
   setConsoleOpen: (open: boolean) => void;
 };
 
-const WebPreviewContext = createContext<WebPreviewContextValue | null>(null);
+const WebPreviewContext = createContext<WebPreviewContextValue | null>(null)
 
 const useWebPreview = () => {
-  const context = useContext(WebPreviewContext);
+  const context = useContext(WebPreviewContext)
   if (!context) {
-    throw new Error('WebPreview components must be used within a WebPreview');
+    throw new Error('WebPreview components must be used within a WebPreview')
   }
-  return context;
-};
+  return context
+}
 
 export type WebPreviewProps = ComponentProps<'div'> & {
   defaultUrl?: string;
@@ -47,20 +47,20 @@ export const WebPreview = ({
   onUrlChange,
   ...props
 }: WebPreviewProps) => {
-  const [url, setUrl] = useState(defaultUrl);
-  const [consoleOpen, setConsoleOpen] = useState(false);
+  const [url, setUrl] = useState(defaultUrl)
+  const [consoleOpen, setConsoleOpen] = useState(false)
 
   const handleUrlChange = (newUrl: string) => {
-    setUrl(newUrl);
-    onUrlChange?.(newUrl);
-  };
+    setUrl(newUrl)
+    onUrlChange?.(newUrl)
+  }
 
   const contextValue: WebPreviewContextValue = {
     url,
     setUrl: handleUrlChange,
     consoleOpen,
-    setConsoleOpen,
-  };
+    setConsoleOpen
+  }
 
   return (
     <WebPreviewContext.Provider value={contextValue}>
@@ -74,8 +74,8 @@ export const WebPreview = ({
         {children}
       </div>
     </WebPreviewContext.Provider>
-  );
-};
+  )
+}
 
 export type WebPreviewNavigationProps = ComponentProps<'div'>;
 
@@ -90,7 +90,7 @@ export const WebPreviewNavigation = ({
   >
     {children}
   </div>
-);
+)
 
 export type WebPreviewNavigationButtonProps = ComponentProps<typeof Button> & {
   tooltip?: string;
@@ -122,7 +122,7 @@ export const WebPreviewNavigationButton = ({
       </TooltipContent>
     </Tooltip>
   </TooltipProvider>
-);
+)
 
 export type WebPreviewUrlProps = ComponentProps<typeof Input>;
 
@@ -132,15 +132,15 @@ export const WebPreviewUrl = ({
   onKeyDown,
   ...props
 }: WebPreviewUrlProps) => {
-  const { url, setUrl } = useWebPreview();
+  const { url, setUrl } = useWebPreview()
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
-      const target = event.target as HTMLInputElement;
-      setUrl(target.value);
+      const target = event.target as HTMLInputElement
+      setUrl(target.value)
     }
-    onKeyDown?.(event);
-  };
+    onKeyDown?.(event)
+  }
 
   return (
     <Input
@@ -151,8 +151,8 @@ export const WebPreviewUrl = ({
       value={value ?? url}
       {...props}
     />
-  );
-};
+  )
+}
 
 export type WebPreviewBodyProps = ComponentProps<'iframe'> & {
   loading?: ReactNode;
@@ -164,7 +164,7 @@ export const WebPreviewBody = ({
   src,
   ...props
 }: WebPreviewBodyProps) => {
-  const { url } = useWebPreview();
+  const { url } = useWebPreview()
 
   return (
     <div className="flex-1">
@@ -177,8 +177,8 @@ export const WebPreviewBody = ({
       />
       {loading}
     </div>
-  );
-};
+  )
+}
 
 export type WebPreviewConsoleProps = ComponentProps<'div'> & {
   logs?: Array<{
@@ -194,7 +194,7 @@ export const WebPreviewConsole = ({
   children,
   ...props
 }: WebPreviewConsoleProps) => {
-  const { consoleOpen, setConsoleOpen } = useWebPreview();
+  const { consoleOpen, setConsoleOpen } = useWebPreview()
 
   return (
     <Collapsible
@@ -224,29 +224,31 @@ export const WebPreviewConsole = ({
         )}
       >
         <div className="max-h-48 space-y-1 overflow-y-auto">
-          {logs.length === 0 ? (
-            <p className="text-muted-foreground">No console output</p>
-          ) : (
-            logs.map((log, index) => (
-              <div
-                className={cn(
-                  'text-xs',
-                  log.level === 'error' && 'text-destructive',
-                  log.level === 'warn' && 'text-yellow-600',
-                  log.level === 'log' && 'text-foreground'
-                )}
-                key={`${log.timestamp.getTime()}-${index}`}
-              >
-                <span className="text-muted-foreground">
-                  {log.timestamp.toLocaleTimeString()}
-                </span>{' '}
-                {log.message}
-              </div>
-            ))
-          )}
+          {logs.length === 0
+            ? (
+              <p className="text-muted-foreground">No console output</p>
+            )
+            : (
+              logs.map((log, index) => (
+                <div
+                  className={cn(
+                    'text-xs',
+                    log.level === 'error' && 'text-destructive',
+                    log.level === 'warn' && 'text-yellow-600',
+                    log.level === 'log' && 'text-foreground'
+                  )}
+                  key={`${log.timestamp.getTime()}-${index}`}
+                >
+                  <span className="text-muted-foreground">
+                    {log.timestamp.toLocaleTimeString()}
+                  </span>{' '}
+                  {log.message}
+                </div>
+              ))
+            )}
           {children}
         </div>
       </CollapsibleContent>
     </Collapsible>
-  );
-};
+  )
+}

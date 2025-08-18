@@ -14,6 +14,7 @@ import { useConversations } from '@/context/conversations-context'
 import { getProviderById } from '@/lib/llm-providers'
 import { useUser } from '@clerk/nextjs'
 import { MessageSquare, Mic } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
 
 // Cambia la interfaz Message:
@@ -52,6 +53,7 @@ export default function Dashboard () {
   const shouldStopRef = useRef(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const t = useTranslations()
 
   useEffect(() => {
     if (isLoaded && isSignedIn && conversations.length === 0 && !isLoading) {
@@ -151,19 +153,25 @@ export default function Dashboard () {
       // Efecto de escritura más rápido:
       let displayed = ''
       const charsPerStep = 4
+      let stopped = false
       for (let i = 0; i < aiResponseContent.length; i += charsPerStep) {
-        if (shouldStopRef.current) break
+        if (shouldStopRef.current) {
+          stopped = true
+          break
+        }
         displayed = aiResponseContent.slice(0, i + charsPerStep)
         setTypingMessage(displayed)
         await new Promise(resolve => setTimeout(resolve, 8))
       }
 
-      // Mensaje final del asistente (optimista)
+      // Si se paró, guarda solo lo escrito hasta el momento
+      const finalContent = stopped ? displayed : aiResponseContent
+
       const assistantOptimisticId = `optimistic-ai-${Date.now()}-${Math.random()}`
       const assistantMessage: Message = {
         id: assistantOptimisticId,
         optimisticId: assistantOptimisticId,
-        content: aiResponseContent,
+        content: finalContent,
         role: 'assistant',
         timestamp: new Date()
       }
@@ -172,7 +180,7 @@ export default function Dashboard () {
 
       // Guarda ambos mensajes en la base de datos
       await addMessage(activeConversationId!, userMessage.role, userMessage.content)
-      await addMessage(activeConversationId!, 'assistant', aiResponseContent)
+      await addMessage(activeConversationId!, 'assistant', finalContent)
 
       // Elimina los mensajes optimistas que ya están en la base de datos
       setOptimisticMessages(prev =>
@@ -234,11 +242,28 @@ export default function Dashboard () {
   const lastMessageKey = uniqueMessages.length
     ? `${uniqueMessages[uniqueMessages.length - 1].id}-${uniqueMessages[uniqueMessages.length - 1].role}-${String(uniqueMessages[uniqueMessages.length - 1].timestamp)}`
     : ''
+  const hasMessages = uniqueMessages.some(
+    msg => !msg.id.startsWith('typing')
+  )
 
   // Scroll automático solo cuando cambia el número de mensajes o typingMessage
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [lastMessageKey])
+
+  function handleStopTyping () {
+    shouldStopRef.current = true
+    setIsTyping(false)
+    setTypingMessage('')
+  }
+  let submitStatus: 'submitted' | 'streaming' | 'error' | undefined
+  if (isTyping) {
+    submitStatus = 'streaming'
+  } else if (error) {
+    submitStatus = 'error'
+  } else {
+    submitStatus = undefined // o simplemente no lo pongas
+  }
   return (
     <div className="flex h-screen text-white">
       <Sidebar ref={inputRef} setError={setError} />
@@ -249,7 +274,7 @@ export default function Dashboard () {
           llmConfig={llmConfig}
         />
 
-        <ScrollArea className="flex-1 p-4">
+        <ScrollArea className={(isTyping || hasMessages) ? 'flex-1 p-4' : 'flex-1 p-4 max-h-[255px]'}>
           {activeConversation
             ? (
               <div className="space-y-4 max-w-4xl mx-auto">
@@ -259,7 +284,6 @@ export default function Dashboard () {
                     message={message}
                     isUser={message.role === 'user'}
                     userImage={user?.imageUrl}
-                    providerName={currentProvider?.name}
                     formatTime={formatTime}
                   />
                 ))}
@@ -283,6 +307,9 @@ export default function Dashboard () {
                 {error}
               </div>
             )}
+            {
+              (!isTyping && !hasMessages) && <h2 className="text-4xl font-semibold text-center text-zinc-400 pb-8">{t('whatAreYouThinking')}</h2>
+            }
             <div className="max-w-4xl mx-auto">
               <div className="flex gap-2">
                 <PromptInput onSubmit={e => {
@@ -295,10 +322,18 @@ export default function Dashboard () {
                     aria-label="Prompt"
                     spellCheck={true}
                   />
-                  <PromptInputToolbar>
+                  <PromptInputToolbar className="p-3">
                     <Mic />
                     <PromptInputSubmit
-                      disabled={!input.trim() || isTyping}
+                      status={submitStatus}
+                      disabled={!input.trim() && !isTyping}
+                      onClick={e => {
+                        if (isTyping) {
+                          e.preventDefault()
+                          handleStopTyping()
+                        }
+                        // Si no está escribiendo, submit normal
+                      }}
                     />
                   </PromptInputToolbar>
                 </PromptInput>

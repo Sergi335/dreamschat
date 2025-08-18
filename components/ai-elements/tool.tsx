@@ -1,23 +1,23 @@
-'use client';
+'use client'
 
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@/components/ui/badge'
 import {
   Collapsible,
   CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import { cn } from '@/lib/utils';
-import type { ToolUIPart } from 'ai';
+  CollapsibleTrigger
+} from '@/components/ui/collapsible'
+import { cn } from '@/lib/utils'
+import type { ToolUIPart } from 'ai'
 import {
   CheckCircleIcon,
   ChevronDownIcon,
   CircleIcon,
   ClockIcon,
   WrenchIcon,
-  XCircleIcon,
-} from 'lucide-react';
-import type { ComponentProps, ReactNode } from 'react';
-import { CodeBlock } from './code-block';
+  XCircleIcon
+} from 'lucide-react'
+import type { ComponentProps, ReactNode } from 'react'
+import { CodeBlock } from './code-block'
 
 export type ToolProps = ComponentProps<typeof Collapsible>;
 
@@ -26,7 +26,7 @@ export const Tool = ({ className, ...props }: ToolProps) => (
     className={cn('not-prose mb-4 w-full rounded-md border', className)}
     {...props}
   />
-);
+)
 
 export type ToolHeaderProps = {
   type: ToolUIPart['type'];
@@ -39,23 +39,23 @@ const getStatusBadge = (status: ToolUIPart['state']) => {
     'input-streaming': 'Pending',
     'input-available': 'Running',
     'output-available': 'Completed',
-    'output-error': 'Error',
-  } as const;
+    'output-error': 'Error'
+  } as const
 
   const icons = {
     'input-streaming': <CircleIcon className="size-4" />,
     'input-available': <ClockIcon className="size-4 animate-pulse" />,
     'output-available': <CheckCircleIcon className="size-4 text-green-600" />,
-    'output-error': <XCircleIcon className="size-4 text-red-600" />,
-  } as const;
+    'output-error': <XCircleIcon className="size-4 text-red-600" />
+  } as const
 
   return (
     <Badge className="rounded-full text-xs" variant="secondary">
       {icons[status]}
       {labels[status]}
     </Badge>
-  );
-};
+  )
+}
 
 export const ToolHeader = ({
   className,
@@ -77,7 +77,7 @@ export const ToolHeader = ({
     </div>
     <ChevronDownIcon className="size-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
   </CollapsibleTrigger>
-);
+)
 
 export type ToolContentProps = ComponentProps<typeof CollapsibleContent>;
 
@@ -89,7 +89,7 @@ export const ToolContent = ({ className, ...props }: ToolContentProps) => (
     )}
     {...props}
   />
-);
+)
 
 export type ToolInputProps = ComponentProps<'div'> & {
   input: ToolUIPart['input'];
@@ -104,7 +104,7 @@ export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
       <CodeBlock code={JSON.stringify(input, null, 2)} language="json" />
     </div>
   </div>
-);
+)
 
 export type ToolOutputProps = ComponentProps<'div'> & {
   output: ReactNode;
@@ -118,7 +118,7 @@ export const ToolOutput = ({
   ...props
 }: ToolOutputProps) => {
   if (!(output || errorText)) {
-    return null;
+    return null
   }
 
   return (
@@ -138,5 +138,5 @@ export const ToolOutput = ({
         {output && <div>{output}</div>}
       </div>
     </div>
-  );
-};
+  )
+}

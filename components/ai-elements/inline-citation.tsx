@@ -1,20 +1,20 @@
-'use client';
+'use client'
 
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@/components/ui/badge'
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
-  useCarousel,
-} from '@/components/ui/carousel';
+  useCarousel
+} from '@/components/ui/carousel'
 import {
   HoverCard,
   HoverCardContent,
-  HoverCardTrigger,
-} from '@/components/ui/hover-card';
-import { cn } from '@/lib/utils';
-import { ArrowLeftIcon, ArrowRightIcon } from 'lucide-react';
-import { type ComponentProps, useCallback, useEffect, useState } from 'react';
+  HoverCardTrigger
+} from '@/components/ui/hover-card'
+import { cn } from '@/lib/utils'
+import { ArrowLeftIcon, ArrowRightIcon } from 'lucide-react'
+import { type ComponentProps, useCallback, useEffect, useState } from 'react'
 
 export type InlineCitationProps = ComponentProps<'span'>;
 
@@ -26,7 +26,7 @@ export const InlineCitation = ({
     className={cn('group inline items-center gap-1', className)}
     {...props}
   />
-);
+)
 
 export type InlineCitationTextProps = ComponentProps<'span'>;
 
@@ -38,13 +38,13 @@ export const InlineCitationText = ({
     className={cn('transition-colors group-hover:bg-accent', className)}
     {...props}
   />
-);
+)
 
 export type InlineCitationCardProps = ComponentProps<typeof HoverCard>;
 
 export const InlineCitationCard = (props: InlineCitationCardProps) => (
   <HoverCard closeDelay={0} openDelay={0} {...props} />
-);
+)
 
 export type InlineCitationCardTriggerProps = ComponentProps<typeof Badge> & {
   sources: string[];
@@ -61,17 +61,19 @@ export const InlineCitationCardTrigger = ({
       variant="secondary"
       {...props}
     >
-      {sources.length ? (
-        <>
-          {new URL(sources[0]).hostname}{' '}
-          {sources.length > 1 && `+${sources.length - 1}`}
-        </>
-      ) : (
-        'unknown'
-      )}
+      {sources.length
+        ? (
+          <>
+            {new URL(sources[0]).hostname}{' '}
+            {sources.length > 1 && `+${sources.length - 1}`}
+          </>
+        )
+        : (
+          'unknown'
+        )}
     </Badge>
   </HoverCardTrigger>
-);
+)
 
 export type InlineCitationCardBodyProps = ComponentProps<'div'>;
 
@@ -80,7 +82,7 @@ export const InlineCitationCardBody = ({
   ...props
 }: InlineCitationCardBodyProps) => (
   <HoverCardContent className={cn('relative w-80 p-0', className)} {...props} />
-);
+)
 
 export type InlineCitationCarouselProps = ComponentProps<typeof Carousel>;
 
@@ -89,13 +91,13 @@ export const InlineCitationCarousel = ({
   ...props
 }: InlineCitationCarouselProps) => (
   <Carousel className={cn('w-full', className)} {...props} />
-);
+)
 
 export type InlineCitationCarouselContentProps = ComponentProps<'div'>;
 
 export const InlineCitationCarouselContent = (
   props: InlineCitationCarouselContentProps
-) => <CarouselContent {...props} />;
+) => <CarouselContent {...props} />
 
 export type InlineCitationCarouselItemProps = ComponentProps<'div'>;
 
@@ -104,7 +106,7 @@ export const InlineCitationCarouselItem = ({
   ...props
 }: InlineCitationCarouselItemProps) => (
   <CarouselItem className={cn('w-full space-y-2 p-4', className)} {...props} />
-);
+)
 
 export type InlineCitationCarouselHeaderProps = ComponentProps<'div'>;
 
@@ -119,7 +121,7 @@ export const InlineCitationCarouselHeader = ({
     )}
     {...props}
   />
-);
+)
 
 export type InlineCitationCarouselIndexProps = ComponentProps<'div'>;
 
@@ -128,22 +130,22 @@ export const InlineCitationCarouselIndex = ({
   className,
   ...props
 }: InlineCitationCarouselIndexProps) => {
-  const { api } = useCarousel();
-  const [current, setCurrent] = useState(0);
-  const [count, setCount] = useState(0);
+  const { api } = useCarousel()
+  const [current, setCurrent] = useState(0)
+  const [count, setCount] = useState(0)
 
   useEffect(() => {
     if (!api) {
-      return;
+      return
     }
 
-    setCount(api.scrollSnapList().length);
-    setCurrent(api.selectedScrollSnap() + 1);
+    setCount(api.scrollSnapList().length)
+    setCurrent(api.selectedScrollSnap() + 1)
 
     api.on('select', () => {
-      setCurrent(api.selectedScrollSnap() + 1);
-    });
-  }, [api]);
+      setCurrent(api.selectedScrollSnap() + 1)
+    })
+  }, [api])
 
   return (
     <div
@@ -155,8 +157,8 @@ export const InlineCitationCarouselIndex = ({
     >
       {children ?? `${current}/${count}`}
     </div>
-  );
-};
+  )
+}
 
 export type InlineCitationCarouselPrevProps = ComponentProps<'button'>;
 
@@ -164,13 +166,13 @@ export const InlineCitationCarouselPrev = ({
   className,
   ...props
 }: InlineCitationCarouselPrevProps) => {
-  const { api } = useCarousel();
+  const { api } = useCarousel()
 
   const handleClick = useCallback(() => {
     if (api) {
-      api.scrollPrev();
+      api.scrollPrev()
     }
-  }, [api]);
+  }, [api])
 
   return (
     <button
@@ -182,8 +184,8 @@ export const InlineCitationCarouselPrev = ({
     >
       <ArrowLeftIcon className="size-4 text-muted-foreground" />
     </button>
-  );
-};
+  )
+}
 
 export type InlineCitationCarouselNextProps = ComponentProps<'button'>;
 
@@ -191,13 +193,13 @@ export const InlineCitationCarouselNext = ({
   className,
   ...props
 }: InlineCitationCarouselNextProps) => {
-  const { api } = useCarousel();
+  const { api } = useCarousel()
 
   const handleClick = useCallback(() => {
     if (api) {
-      api.scrollNext();
+      api.scrollNext()
     }
-  }, [api]);
+  }, [api])
 
   return (
     <button
@@ -209,8 +211,8 @@ export const InlineCitationCarouselNext = ({
     >
       <ArrowRightIcon className="size-4 text-muted-foreground" />
     </button>
-  );
-};
+  )
+}
 
 export type InlineCitationSourceProps = ComponentProps<'div'> & {
   title?: string;
@@ -240,7 +242,7 @@ export const InlineCitationSource = ({
     )}
     {children}
   </div>
-);
+)
 
 export type InlineCitationQuoteProps = ComponentProps<'blockquote'>;
 
@@ -258,4 +260,4 @@ export const InlineCitationQuote = ({
   >
     {children}
   </blockquote>
-);
+)

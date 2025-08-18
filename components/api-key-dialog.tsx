@@ -1,11 +1,11 @@
-"use client";
+'use client'
 
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Key, ExternalLink } from 'lucide-react';
+import { useState } from 'react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Key, ExternalLink } from 'lucide-react'
 
 interface ApiKeyDialogProps {
   open: boolean;
@@ -14,16 +14,16 @@ interface ApiKeyDialogProps {
   currentApiKey?: string;
 }
 
-export function ApiKeyDialog({ open, onOpenChange, onApiKeySubmit, currentApiKey }: ApiKeyDialogProps) {
-  const [apiKey, setApiKey] = useState(currentApiKey || '');
+export function ApiKeyDialog ({ open, onOpenChange, onApiKeySubmit, currentApiKey }: ApiKeyDialogProps) {
+  const [apiKey, setApiKey] = useState(currentApiKey || '')
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     if (apiKey.trim()) {
-      onApiKeySubmit(apiKey.trim());
-      onOpenChange(false);
+      onApiKeySubmit(apiKey.trim())
+      onOpenChange(false)
     }
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -37,7 +37,7 @@ export function ApiKeyDialog({ open, onOpenChange, onApiKeySubmit, currentApiKey
             Enter your OpenAI API key to start chatting with GPT. Your key is stored locally and never sent to our servers.
           </DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="apiKey" className="text-white">API Key</Label>
@@ -51,12 +51,12 @@ export function ApiKeyDialog({ open, onOpenChange, onApiKeySubmit, currentApiKey
               required
             />
           </div>
-          
+
           <div className="flex flex-col space-y-3">
             <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700">
               Save API Key
             </Button>
-            
+
             <div className="text-center">
               <a
                 href="https://platform.openai.com/api-keys"
@@ -70,7 +70,7 @@ export function ApiKeyDialog({ open, onOpenChange, onApiKeySubmit, currentApiKey
             </div>
           </div>
         </form>
-        
+
         <div className="text-xs text-gray-500 space-y-1">
           <p>• Your API key is stored locally in your browser</p>
           <p>• We never store or transmit your API key to our servers</p>
@@ -78,5 +78,5 @@ export function ApiKeyDialog({ open, onOpenChange, onApiKeySubmit, currentApiKey
         </div>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

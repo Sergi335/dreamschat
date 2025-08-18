@@ -1,23 +1,23 @@
-'use client';
+'use client'
 
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { CheckIcon, CopyIcon } from 'lucide-react';
-import type { ComponentProps, HTMLAttributes, ReactNode } from 'react';
-import { createContext, useContext, useState } from 'react';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { CheckIcon, CopyIcon } from 'lucide-react'
+import type { ComponentProps, HTMLAttributes, ReactNode } from 'react'
+import { createContext, useContext, useState } from 'react'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import {
   oneDark,
-  oneLight,
-} from 'react-syntax-highlighter/dist/esm/styles/prism';
+  oneLight
+} from 'react-syntax-highlighter/dist/esm/styles/prism'
 
 type CodeBlockContextType = {
   code: string;
 };
 
 const CodeBlockContext = createContext<CodeBlockContextType>({
-  code: '',
-});
+  code: ''
+})
 
 export type CodeBlockProps = HTMLAttributes<HTMLDivElement> & {
   code: string;
@@ -43,48 +43,46 @@ export const CodeBlock = ({
       {...props}
     >
       <div className="relative">
-        {/* @ts-expect-error - SyntaxHighlighter is not a valid JSX component */}
         <SyntaxHighlighter
           className="overflow-hidden dark:hidden"
           codeTagProps={{
-            className: 'font-mono text-sm',
+            className: 'font-mono text-sm'
           }}
           customStyle={{
             margin: 0,
             padding: '1rem',
             fontSize: '0.875rem',
             background: 'hsl(var(--background))',
-            color: 'hsl(var(--foreground))',
+            color: 'hsl(var(--foreground))'
           }}
           language={language}
           lineNumberStyle={{
             color: 'hsl(var(--muted-foreground))',
             paddingRight: '1rem',
-            minWidth: '2.5rem',
+            minWidth: '2.5rem'
           }}
           showLineNumbers={showLineNumbers}
           style={oneLight}
         >
           {code}
         </SyntaxHighlighter>
-        {/* @ts-expect-error - SyntaxHighlighter is not a valid JSX component */}
         <SyntaxHighlighter
           className="hidden overflow-hidden dark:block"
           codeTagProps={{
-            className: 'font-mono text-sm',
+            className: 'font-mono text-sm'
           }}
           customStyle={{
             margin: 0,
             padding: '1rem',
             fontSize: '0.875rem',
             background: 'hsl(var(--background))',
-            color: 'hsl(var(--foreground))',
+            color: 'hsl(var(--foreground))'
           }}
           language={language}
           lineNumberStyle={{
             color: 'hsl(var(--muted-foreground))',
             paddingRight: '1rem',
-            minWidth: '2.5rem',
+            minWidth: '2.5rem'
           }}
           showLineNumbers={showLineNumbers}
           style={oneDark}
@@ -99,7 +97,7 @@ export const CodeBlock = ({
       </div>
     </div>
   </CodeBlockContext.Provider>
-);
+)
 
 export type CodeBlockCopyButtonProps = ComponentProps<typeof Button> & {
   onCopy?: () => void;
@@ -115,26 +113,26 @@ export const CodeBlockCopyButton = ({
   className,
   ...props
 }: CodeBlockCopyButtonProps) => {
-  const [isCopied, setIsCopied] = useState(false);
-  const { code } = useContext(CodeBlockContext);
+  const [isCopied, setIsCopied] = useState(false)
+  const { code } = useContext(CodeBlockContext)
 
   const copyToClipboard = async () => {
     if (typeof window === 'undefined' || !navigator.clipboard.writeText) {
-      onError?.(new Error('Clipboard API not available'));
-      return;
+      onError?.(new Error('Clipboard API not available'))
+      return
     }
 
     try {
-      await navigator.clipboard.writeText(code);
-      setIsCopied(true);
-      onCopy?.();
-      setTimeout(() => setIsCopied(false), timeout);
+      await navigator.clipboard.writeText(code)
+      setIsCopied(true)
+      onCopy?.()
+      setTimeout(() => setIsCopied(false), timeout)
     } catch (error) {
-      onError?.(error as Error);
+      onError?.(error as Error)
     }
-  };
+  }
 
-  const Icon = isCopied ? CheckIcon : CopyIcon;
+  const Icon = isCopied ? CheckIcon : CopyIcon
 
   return (
     <Button
@@ -146,5 +144,5 @@ export const CodeBlockCopyButton = ({
     >
       {children ?? <Icon size={14} />}
     </Button>
-  );
-};
+  )
+}

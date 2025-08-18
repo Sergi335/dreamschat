@@ -1,13 +1,13 @@
-'use client';
+'use client'
 
 import {
   Collapsible,
   CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import { cn } from '@/lib/utils';
-import { ChevronDownIcon, SearchIcon } from 'lucide-react';
-import type { ComponentProps } from 'react';
+  CollapsibleTrigger
+} from '@/components/ui/collapsible'
+import { cn } from '@/lib/utils'
+import { ChevronDownIcon, SearchIcon } from 'lucide-react'
+import type { ComponentProps } from 'react'
 
 export type TaskItemFileProps = ComponentProps<'div'>;
 
@@ -25,7 +25,7 @@ export const TaskItemFile = ({
   >
     {children}
   </div>
-);
+)
 
 export type TaskItemProps = ComponentProps<'div'>;
 
@@ -33,7 +33,7 @@ export const TaskItem = ({ children, className, ...props }: TaskItemProps) => (
   <div className={cn('text-muted-foreground text-sm', className)} {...props}>
     {children}
   </div>
-);
+)
 
 export type TaskProps = ComponentProps<typeof Collapsible>;
 
@@ -50,7 +50,7 @@ export const Task = ({
     defaultOpen={defaultOpen}
     {...props}
   />
-);
+)
 
 export type TaskTriggerProps = ComponentProps<typeof CollapsibleTrigger> & {
   title: string;
@@ -71,7 +71,7 @@ export const TaskTrigger = ({
       </div>
     )}
   </CollapsibleTrigger>
-);
+)
 
 export type TaskContentProps = ComponentProps<typeof CollapsibleContent>;
 
@@ -91,4 +91,4 @@ export const TaskContent = ({
       {children}
     </div>
   </CollapsibleContent>
-);
+)
