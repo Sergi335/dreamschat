@@ -1,7 +1,7 @@
 'use client'
 
-import type { UseConversationsReturn } from '@/hooks/use-conversations'
-import { useConversations as useConversationsHook } from '@/hooks/use-conversations'
+import type { UseConversationsReturn } from '@/hooks/useConversations'
+import { useConversations as useConversationsHook } from '@/hooks/useConversations'
 import React, { createContext, useContext } from 'react'
 
 // Define el contexto
