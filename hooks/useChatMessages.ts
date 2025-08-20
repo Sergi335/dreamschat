@@ -1,8 +1,13 @@
+// hooks/useChatMessages.ts - Hook principal refactorizado
 import { useConversations } from '@/context/conversations-context'
-import { Message } from '@/types/message.types'
 import { useUser } from '@clerk/nextjs'
-import { useEffect, useRef, useState } from 'react'
-import useLLMConfig from './useLLMConfig'
+import { useCallback, useEffect, useRef } from 'react'
+import { useChatState } from './useChatState'
+import { useLLMApi } from './useLLMApi'
+import { useMessageMerging } from './useMessageMergin'
+import { useMessageUtils } from './useMessageUtils'
+import { useScrollManager } from './useScrollManager'
+import { useTypingEffect } from './useTypingEffect'
 
 export default function useChatMessages () {
   const { user } = useUser()
@@ -14,311 +19,225 @@ export default function useChatMessages () {
     updateConversationTitle,
     addMessage
   } = useConversations()
-  const llmConfig = useLLMConfig()
-  const [input, setInput] = useState('')
-  const [isTyping, setIsTyping] = useState(false)
-  const [typingMessage, setTypingMessage] = useState('')
-  const [error, setError] = useState<string>('')
-  const [localMessages, setLocalMessages] = useState<Message[]>([])
-  const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([])
-  const [isInitialChat, setIsInitialChat] = useState(true)
-  const shouldStopRef = useRef(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const {
+    state,
+    updateState,
+    resetToInitialChat,
+    resetForConversationChange,
+    shouldStopRef
+  } = useChatState()
+
+  const { simulateTyping } = useTypingEffect()
+  const { callLLM } = useLLMApi()
+  const { generateTitle, formatTime, createOptimisticMessage } = useMessageUtils()
+
   const inputRef = useRef<HTMLInputElement>(null)
-  const [hasMounted, setHasMounted] = useState(false)
-  const [userScrolled, setUserScrolled] = useState(false)
-  const lastConversationId = useRef<string | null>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // Cuando el usuario pulsa "nueva conversación" o entra por primera vez
-  function startNewChat () {
-    setIsInitialChat(true)
-    setInput('')
-    setLocalMessages([])
-    setOptimisticMessages([])
-    setTypingMessage('')
-    setIsTyping(false)
-    setError('')
-    shouldStopRef.current = true
-    setActiveConversationId(null)
-  }
+  const { resetScrollState, manageScrollBehavior } = useScrollManager(messagesEndRef)
 
-  // Limpia todos los estados al cambiar de conversación real
-  useEffect(() => {
-    if (activeConversationId) {
-      setLocalMessages([])
-      setOptimisticMessages([])
-      setTypingMessage('')
-      setIsTyping(false)
-      shouldStopRef.current = true
-      setIsInitialChat(false)
-    }
-  }, [activeConversationId])
-
+  // Obtener conversación activa
   const activeConversation = conversations.find(c => c.id === activeConversationId)
 
-  // Sincroniza mensajes locales fusionando reales y optimistas, eliminando duplicados
+  // Fusionar mensajes
+  const uniqueMessages = useMessageMerging(
+    activeConversation?.messages || [],
+    state.optimisticMessages,
+    state.typingMessage,
+    state.isTyping
+  )
+
+  const hasMessages = uniqueMessages.some(msg => !msg.id.startsWith('typing'))
+
+  // Limpiar estado al cambiar conversación
   useEffect(() => {
-    if (activeConversation) {
-      const merged = [
-        ...activeConversation.messages,
-        ...optimisticMessages.filter(om =>
-          !activeConversation.messages.some(
-            m =>
-              (om.optimisticId && m.id === om.optimisticId) ||
-                  (!om.optimisticId && m.content === om.content && m.role === om.role)
-          )
-        )
-      ]
-      setLocalMessages(merged)
+    if (activeConversationId) {
+      resetForConversationChange()
+      // Resetear estado de scroll cuando cambia la conversación activa
+      resetScrollState(activeConversationId)
     }
-  }, [activeConversationId, activeConversation, optimisticMessages])
+  }, [activeConversationId, resetForConversationChange, resetScrollState])
 
-  function generateTitle (firstMessage: string): string {
-    return firstMessage.length > 30
-      ? firstMessage.substring(0, 30) + '...'
-      : firstMessage
-  }
+  // Configurar scroll manager con parámetros mejorados
+  useEffect(() => {
+    const cleanup = manageScrollBehavior(state.isTyping, uniqueMessages, activeConversationId)
+    return cleanup
+  }, [manageScrollBehavior, state.isTyping, uniqueMessages, activeConversationId])
 
-  function formatTime (date: Date) {
-    return date.toLocaleTimeString('es-ES', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    })
-  }
+  // Función para iniciar nuevo chat
+  const startNewChat = useCallback(() => {
+    resetToInitialChat()
+    setActiveConversationId(null)
+  }, [resetToInitialChat, setActiveConversationId])
 
-  async function callLLM (messages: Message[]): Promise<string> {
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: messages.map(msg => ({
-          role: msg.role,
-          content: msg.content
-        })),
-        config: llmConfig
-      })
-    })
-    const data = await response.json()
-    if (!response.ok) throw new Error(data.error || 'Failed to get response')
-    return data.message.content
-  }
-
-  // Al enviar mensaje
-  async function handleSendMessage () {
-    if (!input.trim() || isTyping) return
-
-    // Si estamos en el chat inicial, crea la conversación real y actívala
-    if (isInitialChat) {
-      const newId = await createConversation('Nueva conversación')
-      setActiveConversationId(newId)
-      setIsInitialChat(false)
-      // Espera a que el estado se actualice antes de continuar
-      setTimeout(() => {
-        handleSendMessage()
-      }, 0)
-      return
-    }
-
-    if (!activeConversation) return
-
-    const optimisticId = `optimistic-${Date.now()}-${Math.random()}`
-    const userMessage: Message = {
-      id: optimisticId,
-      optimisticId,
-      content: input.trim(),
-      role: 'user',
-      timestamp: new Date()
-    }
-
-    const isFirstMessage = activeConversation.messages.filter(m => m.role === 'user').length === 0
-
-    setOptimisticMessages(prev => [...prev, userMessage])
-    setInput('')
-    setIsTyping(true)
-    setTypingMessage('')
-    shouldStopRef.current = false
-    setError('')
+  // Función principal para enviar mensaje
+  const handleSendMessage = useCallback(async () => {
+    if (!state.input.trim() || state.isTyping) return
 
     try {
-      // Solo mensajes reales + el mensaje actual
+      // Si es chat inicial, crear conversación primero
+      let conversationId = activeConversationId
+      if (state.isInitialChat) {
+        conversationId = await createConversation('Nueva conversación')
+        setActiveConversationId(conversationId)
+        updateState({ isInitialChat: false })
+      }
+
+      if (!conversationId || !activeConversation) {
+        throw new Error('No se pudo crear o encontrar la conversación')
+      }
+
+      // Crear mensaje optimista del usuario
+      const userMessage = createOptimisticMessage(state.input.trim(), 'user')
+      const isFirstMessage = activeConversation.messages.filter(m => m.role === 'user').length === 0
+
+      // Actualizar estado
+      updateState({
+        optimisticMessages: [...state.optimisticMessages, userMessage],
+        input: '',
+        isTyping: true,
+        typingMessage: '',
+        error: ''
+      })
+      shouldStopRef.current = false
+
+      // Obtener respuesta de la IA
       const aiResponseContent = await callLLM([
         ...activeConversation.messages,
         userMessage
       ])
 
-      // Efecto de escritura más rápido:
-      let displayed = ''
-      const isLong = aiResponseContent.length > 500
-      const isTable = aiResponseContent.includes('|---') && aiResponseContent.includes('\n')
-      const charsPerStep = isTable ? 40 : isLong ? 20 : 8
-      const delay = isTable ? 1 : isLong ? 2 : 8
-
-      let stopped = false
-      for (let i = 0; i < aiResponseContent.length; i += charsPerStep) {
-        if (shouldStopRef.current) {
-          stopped = true
-          break
-        }
-        displayed = aiResponseContent.slice(0, i + charsPerStep)
-        setTypingMessage(displayed)
-        await new Promise(resolve => setTimeout(resolve, delay))
-      }
-
-      // Si se paró, guarda solo lo escrito hasta el momento
-      const finalContent = stopped ? displayed : aiResponseContent
-
-      const assistantOptimisticId = `optimistic-ai-${Date.now()}-${Math.random()}`
-      const assistantMessage: Message = {
-        id: assistantOptimisticId,
-        optimisticId: assistantOptimisticId,
-        content: finalContent,
-        role: 'assistant',
-        timestamp: new Date()
-      }
-      setOptimisticMessages(prev => [...prev, assistantMessage])
-      setTypingMessage('')
-
-      // Guarda ambos mensajes en la base de datos
-      await addMessage(activeConversationId!, userMessage.role, userMessage.content)
-      await addMessage(activeConversationId!, 'assistant', finalContent)
-
-      // Elimina los mensajes optimistas que ya están en la base de datos
-      setOptimisticMessages(prev =>
-        prev.filter(m =>
-          m.optimisticId !== userMessage.optimisticId &&
-              m.optimisticId !== assistantMessage.optimisticId
-        )
+      // Simular efecto de escritura
+      const finalContent = await simulateTyping(
+        aiResponseContent,
+        shouldStopRef,
+        (displayed) => updateState({ typingMessage: displayed })
       )
 
-      if (isFirstMessage) {
-        await updateConversationTitle(activeConversationId!, generateTitle(userMessage.content))
-      }
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        setError(error.message || 'Error al enviar mensaje')
-      } else {
-        setError('Error al enviar mensaje')
-      }
-    } finally {
-      setTypingMessage('')
-      setIsTyping(false)
-      inputRef.current?.focus()
-    }
-  }
+      // Crear mensaje optimista del asistente
+      const assistantMessage = createOptimisticMessage(finalContent, 'assistant', 'optimistic-ai')
 
-  // Renderiza mensajes locales + mensaje de typing
-  const lastMessage = localMessages[localMessages.length - 1]
-  const showTyping =
-        isTyping &&
-        (
-          typingMessage ||
-          !lastMessage || lastMessage.role !== 'assistant'
+      updateState({
+        optimisticMessages: [...state.optimisticMessages, assistantMessage],
+        typingMessage: '',
+        isTyping: false
+      })
+
+      // CAMBIO: Guardar mensajes en base de datos y esperar a que se completen antes de limpiar
+      try {
+        await addMessage(conversationId, userMessage.role, userMessage.content)
+        await addMessage(conversationId, 'assistant', finalContent)
+
+        // IMPORTANTE: Esperar un breve momento para que los datos se actualicen en el contexto
+        await new Promise(resolve => setTimeout(resolve, 500))
+
+        // Verificar que los mensajes existen en conversaciones antes de eliminarlos del estado optimista
+        const updatedConversation = conversations.find(c => c.id === conversationId)
+        const messagesExistInDB = updatedConversation?.messages.some(m =>
+          (m.content === userMessage.content && m.role === userMessage.role) &&
+          updatedConversation.messages.some(m2 =>
+            m2.content === finalContent && m2.role === 'assistant'
+          )
         )
 
-  const renderedMessages = [
-    ...localMessages,
-    ...(showTyping
-      ? [{
-        id: `typing-${isTyping ? 1 : 0}-${Date.now()}`, // id único por render
-        content: typingMessage
-          ? typingMessage + '|'
-          : 'Pensando...',
-        role: 'assistant' as const,
-        timestamp: new Date()
-      }]
-      : [])
-  ]
+        // Solo eliminar mensajes optimistas si existen en la base de datos
+        if (messagesExistInDB) {
+          updateState({
+            optimisticMessages: state.optimisticMessages.filter(m =>
+              m.optimisticId !== userMessage.optimisticId &&
+              m.optimisticId !== assistantMessage.optimisticId
+            )
+          })
+        }
+      } catch (error) {
+        console.error('Error al guardar mensajes en la base de datos:', error)
+        // No eliminar mensajes optimistas si hay error
+      }
 
-  // Justo antes del renderizado:
-  const uniqueMessages: Message[] = []
-  const seen = new Set<string>()
-  for (const msg of renderedMessages) {
-    const key = `${msg.role}-${msg.content}`
-    if (!seen.has(key)) {
-      uniqueMessages.push(msg)
-      seen.add(key)
+      // Actualizar título si es el primer mensaje
+      if (isFirstMessage) {
+        await updateConversationTitle(conversationId, generateTitle(userMessage.content))
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Error al enviar mensaje'
+      updateState({
+        error: errorMessage,
+        isTyping: false,
+        typingMessage: ''
+      })
+    } finally {
+      inputRef.current?.focus()
     }
-  }
-  const lastMessageKey = uniqueMessages.length
-    ? `${uniqueMessages[uniqueMessages.length - 1].id}-${uniqueMessages[uniqueMessages.length - 1].role}-${String(uniqueMessages[uniqueMessages.length - 1].timestamp)}`
-    : ''
-  const hasMessages = uniqueMessages.some(
-    msg => !msg.id.startsWith('typing')
-  )
+  }, [
+    state,
+    activeConversationId,
+    activeConversation,
+    createConversation,
+    setActiveConversationId,
+    updateState,
+    shouldStopRef,
+    createOptimisticMessage,
+    callLLM,
+    simulateTyping,
+    addMessage,
+    updateConversationTitle,
+    generateTitle,
+    conversations
+  ])
 
-  // Detecta si el usuario ha hecho scroll manualmente
-  useEffect(() => {
-    const el = messagesEndRef.current?.parentElement
-    if (!el) return
-    const onScroll = () => {
-      setUserScrolled(!isUserAtBottom())
-    }
-    el.addEventListener('scroll', onScroll)
-    return () => el.removeEventListener('scroll', onScroll)
-  }, [messagesEndRef])
-
-  function isUserAtBottom () {
-    const el = messagesEndRef.current?.parentElement
-    if (!el) return true
-    return el.scrollHeight - el.scrollTop - el.clientHeight < 100
-  }
-
-  // Marca como montado tras el primer render
-  useEffect(() => {
-    setHasMounted(true)
-  }, [])
-
-  // Efecto de scroll mejorado:
-  useEffect(() => {
-    if (!hasMounted) return
-
-    // Detecta cambio de conversación
-    const isConversationChange = lastConversationId.current !== activeConversationId
-    lastConversationId.current = activeConversationId
-
-    // Solo hace scroll si:
-    // - No es cambio de conversación (o es la primera vez)
-    // - El usuario está abajo y no ha hecho scroll manual
-    if (
-      !isConversationChange &&
-      ((isTyping || (lastMessageKey && !isTyping)) && isUserAtBottom() && !userScrolled)
-    ) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }
-  }, [lastMessageKey, isTyping, hasMounted, activeConversationId, userScrolled])
-
-  function handleStopTyping () {
+  const handleStopTyping = useCallback(() => {
     shouldStopRef.current = true
-    setIsTyping(false)
-    setTypingMessage('')
-  }
+    updateState({
+      isTyping: false,
+      typingMessage: ''
+    })
+  }, [updateState, shouldStopRef])
+
+  const setInput = useCallback((value: string) => {
+    updateState({ input: value })
+  }, [updateState])
+
+  const setError = useCallback((error: string) => {
+    updateState({ error })
+  }, [updateState])
+
+  // Determinar estado de envío
   let submitStatus: 'submitted' | 'streaming' | 'error' | undefined
-  if (isTyping) {
+  if (state.isTyping) {
     submitStatus = 'streaming'
-  } else if (error) {
+  } else if (state.error) {
     submitStatus = 'error'
-  } else {
-    submitStatus = undefined // o simplemente no lo pongas
   }
 
   return {
+    // Mensajes y estado
     uniqueMessages,
-    isTyping,
     hasMessages,
-    error,
+    isTyping: state.isTyping,
+    error: state.error,
+
+    // Input
+    input: state.input,
+    setInput,
+
+    // Acciones
     handleSendMessage,
     handleStopTyping,
-    input,
-    setInput,
+    startNewChat,
+    setError,
+
+    // Estado y referencias
     submitStatus,
     messagesEndRef,
-    user,
-    formatTime,
     inputRef,
-    setError,
+
+    // Datos del usuario y conversación
+    user,
     activeConversation,
-    isInitialChat,
-    startNewChat
+    isInitialChat: state.isInitialChat,
+
+    // Utilidades
+    formatTime
   }
 }
