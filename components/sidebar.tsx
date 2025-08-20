@@ -27,8 +27,24 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(
       deleteConversation,
       isLoading
     } = useConversations()
+    console.log('🚀 ~ conversations:', conversations)
 
     const handleNewConversation = useCallback(async () => {
+      // Busca una conversación vacía
+      const emptyConversation = conversations.find(c => c.messages.length === 0)
+      if (emptyConversation) {
+        setActiveConversationId(emptyConversation.id)
+        setSidebarOpen(false)
+        setError('')
+        setTimeout(() => {
+          if (inputRef && 'current' in inputRef && inputRef.current) {
+            inputRef.current.focus()
+          }
+        }, 100)
+        return
+      }
+
+      // Si no existe, crea una nueva
       try {
         const newConversationId = await createConversation('Nueva conversación')
         if (newConversationId) {
@@ -36,8 +52,6 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(
         }
         setSidebarOpen(false)
         setError('')
-
-        // Enfocar el input después de crear la conversación
         setTimeout(() => {
           if (inputRef && 'current' in inputRef && inputRef.current) {
             inputRef.current.focus()
@@ -47,7 +61,7 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(
         console.error('Error creating conversation:', error)
         setError('Error al crear nueva conversación')
       }
-    }, [createConversation, setActiveConversationId, setError, inputRef])
+    }, [conversations, createConversation, setActiveConversationId, setError, inputRef])
 
     const handleDeleteConversation = useCallback(async (conversationId: string, e: React.MouseEvent) => {
       e.stopPropagation() // Evitar que se seleccione la conversación al hacer click en eliminar
@@ -106,22 +120,23 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(
         <ScrollArea className="flex-1 px-4">
           <div className="space-y-2">
             {conversations.map((conversation) => (
-              <div key={conversation.id} className="relative">
-                <Button
-                  variant={conversation.id === activeConversationId ? 'secondary' : 'ghost'}
-                  className="w-full justify-start text-left h-auto p-3 group hover:bg-secondary"
-                  onClick={() => setActiveConversationId(conversation.id)}
-                >
-                  <div className="flex-1 truncate">
-                    <div className="font-medium truncate max-w-32">{conversation.title}</div>
-                    <div className="text-xs text-gray-400 mt-1">
-                      {conversation.messages.length} mensajes
+              conversation.messages.length > 0 && (
+                <div key={conversation.id} className="relative">
+                  <Button
+                    variant={conversation.id === activeConversationId ? 'secondary' : 'ghost'}
+                    className="w-full justify-start text-left h-auto p-3 group hover:bg-secondary"
+                    onClick={() => setActiveConversationId(conversation.id)}
+                  >
+                    <div className="flex-1 truncate">
+                      <div className="font-medium truncate max-w-32">{conversation.title}</div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        {conversation.messages.length} mensajes
+                      </div>
                     </div>
-                  </div>
-                  <Trash2 onClick={(e) => handleDeleteConversation(conversation.id, e)} className="h-4 w-4 group-hover:block hidden hover:text-red-400" />
-                </Button>
-              </div>
-            ))}
+                    <Trash2 onClick={(e) => handleDeleteConversation(conversation.id, e)} className="h-4 w-4 group-hover:block hidden hover:text-red-400" />
+                  </Button>
+                </div>
+              )))}
           </div>
         </ScrollArea>
 

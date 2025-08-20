@@ -5,14 +5,14 @@ import { useEffect, useRef, useState } from 'react'
 import useLLMConfig from './useLLMConfig'
 
 export default function useChatMessages () {
-  const { user, isLoaded, isSignedIn } = useUser()
+  const { user } = useUser()
   const {
     conversations,
     activeConversationId,
+    setActiveConversationId,
     createConversation,
     updateConversationTitle,
-    addMessage,
-    isLoading
+    addMessage
   } = useConversations()
   const llmConfig = useLLMConfig()
   const [input, setInput] = useState('')
@@ -21,28 +21,40 @@ export default function useChatMessages () {
   const [error, setError] = useState<string>('')
   const [localMessages, setLocalMessages] = useState<Message[]>([])
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([])
+  const [isInitialChat, setIsInitialChat] = useState(true)
   const shouldStopRef = useRef(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const [hasMounted, setHasMounted] = useState(false)
+  const [userScrolled, setUserScrolled] = useState(false)
+  const lastConversationId = useRef<string | null>(null)
 
-  // Crea una conversación nueva cuando el usuario no tiene ninguna en la base de datos
-  // Hay que hacer algo parecido para generar una cada vez que entras
-  useEffect(() => {
-    if (isLoaded && isSignedIn && conversations.length === 0 && !isLoading) {
-      createConversation('Nueva conversación')
-    }
-  }, [isLoaded, isSignedIn, conversations.length, isLoading, createConversation])
-
-  const activeConversation = conversations.find(c => c.id === activeConversationId)
-
-  // Limpia todos los estados al cambiar de conversación
-  useEffect(() => {
+  // Cuando el usuario pulsa "nueva conversación" o entra por primera vez
+  function startNewChat () {
+    setIsInitialChat(true)
+    setInput('')
     setLocalMessages([])
     setOptimisticMessages([])
     setTypingMessage('')
     setIsTyping(false)
-    shouldStopRef.current = true // cancela efecto de escritura si estaba activo
+    setError('')
+    shouldStopRef.current = true
+    setActiveConversationId(null)
+  }
+
+  // Limpia todos los estados al cambiar de conversación real
+  useEffect(() => {
+    if (activeConversationId) {
+      setLocalMessages([])
+      setOptimisticMessages([])
+      setTypingMessage('')
+      setIsTyping(false)
+      shouldStopRef.current = true
+      setIsInitialChat(false)
+    }
   }, [activeConversationId])
+
+  const activeConversation = conversations.find(c => c.id === activeConversationId)
 
   // Sincroniza mensajes locales fusionando reales y optimistas, eliminando duplicados
   useEffect(() => {
@@ -92,9 +104,23 @@ export default function useChatMessages () {
     return data.message.content
   }
 
-  // Al enviar mensaje, añade solo a optimisticMessages
+  // Al enviar mensaje
   async function handleSendMessage () {
-    if (!input.trim() || !activeConversation || isTyping) return
+    if (!input.trim() || isTyping) return
+
+    // Si estamos en el chat inicial, crea la conversación real y actívala
+    if (isInitialChat) {
+      const newId = await createConversation('Nueva conversación')
+      setActiveConversationId(newId)
+      setIsInitialChat(false)
+      // Espera a que el estado se actualice antes de continuar
+      setTimeout(() => {
+        handleSendMessage()
+      }, 0)
+      return
+    }
+
+    if (!activeConversation) return
 
     const optimisticId = `optimistic-${Date.now()}-${Math.random()}`
     const userMessage: Message = {
@@ -123,7 +149,11 @@ export default function useChatMessages () {
 
       // Efecto de escritura más rápido:
       let displayed = ''
-      const charsPerStep = 4
+      const isLong = aiResponseContent.length > 500
+      const isTable = aiResponseContent.includes('|---') && aiResponseContent.includes('\n')
+      const charsPerStep = isTable ? 40 : isLong ? 20 : 8
+      const delay = isTable ? 1 : isLong ? 2 : 8
+
       let stopped = false
       for (let i = 0; i < aiResponseContent.length; i += charsPerStep) {
         if (shouldStopRef.current) {
@@ -132,7 +162,7 @@ export default function useChatMessages () {
         }
         displayed = aiResponseContent.slice(0, i + charsPerStep)
         setTypingMessage(displayed)
-        await new Promise(resolve => setTimeout(resolve, 8))
+        await new Promise(resolve => setTimeout(resolve, delay))
       }
 
       // Si se paró, guarda solo lo escrito hasta el momento
@@ -217,10 +247,46 @@ export default function useChatMessages () {
     msg => !msg.id.startsWith('typing')
   )
 
-  // Scroll automático solo cuando cambia el número de mensajes o typingMessage
+  // Detecta si el usuario ha hecho scroll manualmente
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [lastMessageKey])
+    const el = messagesEndRef.current?.parentElement
+    if (!el) return
+    const onScroll = () => {
+      setUserScrolled(!isUserAtBottom())
+    }
+    el.addEventListener('scroll', onScroll)
+    return () => el.removeEventListener('scroll', onScroll)
+  }, [messagesEndRef])
+
+  function isUserAtBottom () {
+    const el = messagesEndRef.current?.parentElement
+    if (!el) return true
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 100
+  }
+
+  // Marca como montado tras el primer render
+  useEffect(() => {
+    setHasMounted(true)
+  }, [])
+
+  // Efecto de scroll mejorado:
+  useEffect(() => {
+    if (!hasMounted) return
+
+    // Detecta cambio de conversación
+    const isConversationChange = lastConversationId.current !== activeConversationId
+    lastConversationId.current = activeConversationId
+
+    // Solo hace scroll si:
+    // - No es cambio de conversación (o es la primera vez)
+    // - El usuario está abajo y no ha hecho scroll manual
+    if (
+      !isConversationChange &&
+      ((isTyping || (lastMessageKey && !isTyping)) && isUserAtBottom() && !userScrolled)
+    ) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [lastMessageKey, isTyping, hasMounted, activeConversationId, userScrolled])
 
   function handleStopTyping () {
     shouldStopRef.current = true
@@ -251,6 +317,8 @@ export default function useChatMessages () {
     formatTime,
     inputRef,
     setError,
-    activeConversation
+    activeConversation,
+    isInitialChat,
+    startNewChat
   }
 }
