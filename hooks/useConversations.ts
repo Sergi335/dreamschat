@@ -225,39 +225,6 @@ export const useConversations = (): UseConversationsReturn => {
     }
   }
 
-  // Migrar conversaciones locales a la base de datos
-  // const migrateLocalConversations = async (): Promise<void> => {
-  //   if (!user) return
-
-  //   const localConversations = localStorage.getItem('dream-reader-conversations')
-  //   if (!localConversations) return
-
-  //   try {
-  //     const parsed: LocalConversation[] = JSON.parse(localConversations)
-  //     const { migrateLocalConversations: migrateFunc } = await import('@/lib/database')
-
-  //     const conversationsToMigrate: Conversation[] = parsed.map((conv) => ({
-  //       ...conv,
-  //       lastUpdated: new Date(conv.lastUpdated),
-  //       messages: conv.messages.map((msg) => ({
-  //         ...msg,
-  //         timestamp: new Date(msg.timestamp)
-  //       }))
-  //     }))
-
-  //     const success = await migrateFunc(user.id, conversationsToMigrate)
-
-  //     if (success) {
-  //       localStorage.removeItem('dream-reader-conversations')
-  //       await loadConversations() // Recargar desde la DB
-  //     }
-  //   } catch (err) {
-  //     const errorObj = err as Error
-  //     console.error('Error migrating conversations:', errorObj)
-  //     setError(errorObj.message)
-  //   }
-  // }
-
   // Efectos
   useEffect(() => {
     if (isLoaded && user) {
@@ -268,7 +235,7 @@ export const useConversations = (): UseConversationsReturn => {
   // Auto-seleccionar la primera conversación si no hay ninguna activa
   useEffect(() => {
     if (conversations.length > 0 && !activeConversationId) {
-      setActiveConversationId(conversations[0].id)
+      setActiveConversationId(conversations.find(c => c.title === 'Nueva conversación')?.id || null)
     }
   }, [conversations, activeConversationId])
 

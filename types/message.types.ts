@@ -4,4 +4,5 @@ export interface Message {
   role: 'user' | 'assistant';
   timestamp: Date;
   optimisticId?: string; // <-- Nuevo campo opcional
+  conversationId?: string; // Opcional para mensajes optimistas
 }

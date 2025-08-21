@@ -16,20 +16,20 @@ export function useMessageUtils () {
     })
   }, [])
 
+  // hooks/useMessageUtils.ts
   const createOptimisticMessage = useCallback((
     content: string,
     role: 'user' | 'assistant',
-    prefix = 'optimistic'
-  ) => {
-    const optimisticId = `${prefix}-${Date.now()}-${Math.random()}`
-    return {
-      id: optimisticId,
-      optimisticId,
-      content,
-      role,
-      timestamp: new Date()
-    }
-  }, [])
+    prefix = 'optimistic',
+    conversationId: string
+  ) => ({
+    id: `${prefix}-${Date.now()}-${Math.random()}`,
+    content,
+    role,
+    timestamp: new Date(),
+    optimisticId: `${prefix}-${Date.now()}-${Math.random()}`,
+    conversationId
+  }), [])
 
   return {
     generateTitle,

@@ -4,7 +4,7 @@ import { useUser } from '@clerk/nextjs'
 import { useCallback, useEffect, useRef } from 'react'
 import { useChatState } from './useChatState'
 import { useLLMApi } from './useLLMApi'
-import { useMessageMerging } from './useMessageMergin'
+import { useMessageMerging } from './useMessageMerging'
 import { useMessageUtils } from './useMessageUtils'
 import { useScrollManager } from './useScrollManager'
 import { useTypingEffect } from './useTypingEffect'
@@ -35,35 +35,44 @@ export default function useChatMessages () {
   const inputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const { resetScrollState, manageScrollBehavior } = useScrollManager(messagesEndRef)
+  const { scrollToBottom, autoScroll } = useScrollManager(messagesEndRef)
 
   // Obtener conversación activa
   const activeConversation = conversations.find(c => c.id === activeConversationId)
 
+  const relevantOptimisticMessages = state.optimisticMessages.filter(
+    m => m.conversationId === activeConversationId
+  )
   // Fusionar mensajes
   const uniqueMessages = useMessageMerging(
     activeConversation?.messages || [],
-    state.optimisticMessages,
+    relevantOptimisticMessages,
     state.typingMessage,
     state.isTyping
   )
 
   const hasMessages = uniqueMessages.some(msg => !msg.id.startsWith('typing'))
 
-  // Limpiar estado al cambiar conversación
   useEffect(() => {
-    if (activeConversationId) {
-      resetForConversationChange()
-      // Resetear estado de scroll cuando cambia la conversación activa
-      resetScrollState(activeConversationId)
+    if (autoScroll) {
+      scrollToBottom('smooth')
     }
-  }, [activeConversationId, resetForConversationChange, resetScrollState])
+  }, [uniqueMessages, autoScroll, scrollToBottom])
 
-  // Configurar scroll manager con parámetros mejorados
-  useEffect(() => {
-    const cleanup = manageScrollBehavior(state.isTyping, uniqueMessages, activeConversationId)
-    return cleanup
-  }, [manageScrollBehavior, state.isTyping, uniqueMessages, activeConversationId])
+  // // Limpiar estado al cambiar conversación
+  // useEffect(() => {
+  //   if (activeConversationId) {
+  //     resetForConversationChange()
+  //     // Resetear estado de scroll cuando cambia la conversación activa
+  //     resetScrollState()
+  //   }
+  // }, [activeConversationId, resetForConversationChange, resetScrollState])
+
+  // // Configurar scroll manager con parámetros mejorados
+  // useEffect(() => {
+  //   const cleanup = manageScrollBehavior(state.isTyping, uniqueMessages, activeConversationId)
+  //   return cleanup
+  // }, [manageScrollBehavior, state.isTyping, uniqueMessages, activeConversationId])
 
   // Función para iniciar nuevo chat
   const startNewChat = useCallback(() => {
@@ -89,7 +98,7 @@ export default function useChatMessages () {
       }
 
       // Crear mensaje optimista del usuario
-      const userMessage = createOptimisticMessage(state.input.trim(), 'user')
+      const userMessage = createOptimisticMessage(state.input.trim(), 'user', 'optimistic', conversationId)
       const isFirstMessage = activeConversation.messages.filter(m => m.role === 'user').length === 0
 
       // Actualizar estado
@@ -116,7 +125,7 @@ export default function useChatMessages () {
       )
 
       // Crear mensaje optimista del asistente
-      const assistantMessage = createOptimisticMessage(finalContent, 'assistant', 'optimistic-ai')
+      const assistantMessage = createOptimisticMessage(finalContent, 'assistant', 'optimistic-ai', conversationId)
 
       updateState({
         optimisticMessages: [...state.optimisticMessages, assistantMessage],
@@ -226,6 +235,8 @@ export default function useChatMessages () {
     handleStopTyping,
     startNewChat,
     setError,
+    resetForConversationChange,
+    resetToInitialChat,
 
     // Estado y referencias
     submitStatus,

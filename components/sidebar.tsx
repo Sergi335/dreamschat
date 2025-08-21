@@ -2,6 +2,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useConversations } from '@/context/conversations-context'
+import useChatMessages from '@/hooks/useChatMessages'
+// import useChatMessages from '@/hooks/useChatMessages'
+// import { useChatState } from '@/hooks/useChatState'
 import { cn } from '@/lib/utils'
 import { SignOutButton, useUser } from '@clerk/nextjs'
 import { LogOut, Plus, Trash2, User, X } from 'lucide-react'
@@ -27,13 +30,16 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(
       deleteConversation,
       isLoading
     } = useConversations()
-    console.log('🚀 ~ conversations:', conversations)
+    // console.log('🚀 ~ conversations:', conversations)
+    const { resetToInitialChat } = useChatMessages()
 
     const handleNewConversation = useCallback(async () => {
       // Busca una conversación vacía
       const emptyConversation = conversations.find(c => c.messages.length === 0)
+      console.log('🚀 ~ emptyConversation:', emptyConversation)
       if (emptyConversation) {
         setActiveConversationId(emptyConversation.id)
+        resetToInitialChat()
         setSidebarOpen(false)
         setError('')
         setTimeout(() => {
@@ -61,7 +67,7 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(
         console.error('Error creating conversation:', error)
         setError('Error al crear nueva conversación')
       }
-    }, [conversations, createConversation, setActiveConversationId, setError, inputRef])
+    }, [conversations, createConversation, setActiveConversationId, setError, inputRef, resetToInitialChat])
 
     const handleDeleteConversation = useCallback(async (conversationId: string, e: React.MouseEvent) => {
       e.stopPropagation() // Evitar que se seleccione la conversación al hacer click en eliminar
@@ -128,7 +134,9 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(
                     onClick={() => setActiveConversationId(conversation.id)}
                   >
                     <div className="flex-1 truncate">
-                      <div className="font-medium truncate max-w-32">{conversation.title}</div>
+                      <div className="font-medium truncate max-w-32">
+                        {conversation.title || t('untitled') || 'Sin título'}
+                      </div>
                       <div className="text-xs text-gray-400 mt-1">
                         {conversation.messages.length} mensajes
                       </div>
