@@ -1,12 +1,12 @@
 import { getRequestConfig } from 'next-intl/server'
 
-export default getRequestConfig(async () => {
-  // Provide a static locale, fetch a user setting,
-  // read from `cookies()`, `headers()`, etc.
-  const locale = 'en'
-
+export default getRequestConfig(async ({ locale }) => {
+  // Validate that the incoming `locale` parameter is valid
+  const validLocales = ['es', 'en', 'pt']
+  const validatedLocale = validLocales.includes(locale) ? locale : 'es'
+  
   return {
-    locale,
-    messages: (await import(`../messages/${locale}.json`)).default
+    locale: validatedLocale,
+    messages: (await import(`../messages/${validatedLocale}.json`)).default
   }
 })

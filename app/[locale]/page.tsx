@@ -6,8 +6,9 @@ import { useTranslations } from 'next-intl'
 import { useParams, usePathname } from 'next/navigation'
 
 const locales = [
-  { code: 'es', label: 'Español' },
-  { code: 'en', label: 'English' }
+  { code: 'es', label: 'Español', flag: '🇪🇸' },
+  { code: 'en', label: 'English', flag: '🇺🇸' },
+  { code: 'pt', label: 'Português', flag: '🇧🇷' }
 ]
 const validLocales = locales.map(l => l.code)
 
@@ -20,7 +21,7 @@ export default function Page () {
   }
   console.log('🚀 ~ Page ~ locale:', locale)
   // Elimina el locale actual del pathname para construir la nueva ruta
-  const pathWithoutLocale = pathname.replace(/^\/(es|en)/, '')
+  const pathWithoutLocale = pathname.replace(/^\/(es|en|pt)/, '')
   const t = useTranslations()
   return (
     <>
@@ -65,12 +66,28 @@ export default function Page () {
           <Select value={pathname.split('/')[1]} onValueChange={value => {
             window.location.pathname = `/${value}${pathWithoutLocale}`
           }}>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecciona..." />
+            <SelectTrigger className="w-auto min-w-[140px]">
+              <SelectValue>
+                {(() => {
+                  const currentLocale = locales.find(l => l.code === pathname.split('/')[1])
+                  return currentLocale ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">{currentLocale.flag}</span>
+                      <span>{currentLocale.label}</span>
+                    </div>
+                  ) : 'Selecciona...'
+                })()}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="es">Español</SelectItem>
-              <SelectItem value="en">English</SelectItem>
+              {locales.map(locale => (
+                <SelectItem key={locale.code} value={locale.code}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">{locale.flag}</span>
+                    <span>{locale.label}</span>
+                  </div>
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
