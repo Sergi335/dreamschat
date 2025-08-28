@@ -1,6 +1,7 @@
 'use client'
 // import Link from 'next/link'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
 import { ArrowRight, Brain, Check, ChevronDown, Clock, Menu, Send, Wand2 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useParams, usePathname } from 'next/navigation'
@@ -40,8 +41,28 @@ export default function Page () {
           </nav>
 
           <div className="flex items-center space-x-4">
-            <a href={`/${locale}/dashboard`} className="hidden sm:inline-block text-xs font-medium px-4 py-2 rounded-md ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all">{t('login')}</a>
-            <a href={`/${locale}/dashboard`} className="text-xs font-medium px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 transition-colors">{t('getStarted')}</a>
+            {/* ...tu header y contenido... */}
+            <div className="">
+              <Select value={pathname.split('/')[1]} onValueChange={value => {
+                window.location.pathname = `/${value}${pathWithoutLocale}`
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="es">Español</SelectItem>
+                  <SelectItem value="en">English</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <SignedIn>
+              <a href={`/${locale}/dashboard`} className="hidden sm:inline-block text-xs font-medium px-4 py-2 rounded-md transition-all">Chat</a>
+              <UserButton />
+            </SignedIn>
+            <SignedOut>
+              <a href={`/${locale}/dashboard`} className="hidden sm:inline-block text-xs font-medium px-4 py-2 rounded-md ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all">{t('login')}</a>
+              <a href={`/${locale}/dashboard`} className="text-xs font-medium px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 transition-colors">{t('getStarted')}</a>
+            </SignedOut>
 
             {/* <!-- Mobile Menu --> */}
             <button id="menuBtn" className="md:hidden p-2 rounded-md ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all">
@@ -59,20 +80,6 @@ export default function Page () {
             <a href="#faq" className="hover:text-white transition-colors">{t('faq')}</a>
             <a href="#" className="text-xs font-medium mt-4 px-4 py-2 rounded-md ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all text-center">{t('login')}</a>
           </nav>
-        </div>
-        {/* ...tu header y contenido... */}
-        <div className="absolute top-4 right-4 z-50">
-          <Select value={pathname.split('/')[1]} onValueChange={value => {
-            window.location.pathname = `/${value}${pathWithoutLocale}`
-          }}>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecciona..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="es">Español</SelectItem>
-              <SelectItem value="en">English</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
       </header>
 

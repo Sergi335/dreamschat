@@ -1,5 +1,5 @@
 import { addMessage, updateConversationTitle } from '@/lib/database'
-import { supabase } from '@/lib/supabase'
+import { createSupabaseClient } from '@/lib/supabase-server'
 import { auth } from '@clerk/nextjs/server'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -8,14 +8,16 @@ export async function POST (
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth()
-
-    if (!userId) {
+    const session = await auth()
+    const { getToken, userId } = session
+    const token = await getToken()
+    if (!userId || !token) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
+    const supabase = createSupabaseClient(token)
 
     const { role, content } = await request.json()
     const params = await context.params
@@ -35,7 +37,7 @@ export async function POST (
       )
     }
 
-    const messageId = await addMessage(conversationId, role, content)
+    const messageId = await addMessage(supabase, conversationId, role, content)
 
     if (!messageId) {
       return NextResponse.json(
@@ -50,7 +52,7 @@ export async function POST (
       content,
       timestamp: new Date()
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error adding message:', error)
     return NextResponse.json(
       { error: 'Failed to add message' },
@@ -64,14 +66,16 @@ export async function PATCH (
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth()
-
-    if (!userId) {
+    const session = await auth()
+    const { getToken, userId } = session
+    const token = await getToken()
+    if (!userId || !token) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
+    const supabase = createSupabaseClient(token)
 
     const { title } = await request.json()
     const params = await context.params
@@ -84,7 +88,7 @@ export async function PATCH (
       )
     }
 
-    const success = await updateConversationTitle(conversationId, title)
+    const success = await updateConversationTitle(supabase, conversationId, title)
 
     if (!success) {
       return NextResponse.json(
@@ -96,7 +100,7 @@ export async function PATCH (
     return NextResponse.json({
       success: true
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating conversation:', error)
     return NextResponse.json(
       { error: 'Failed to update conversation' },
@@ -110,14 +114,16 @@ export async function DELETE (
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth()
-
-    if (!userId) {
+    const session = await auth()
+    const { getToken, userId } = session
+    const token = await getToken()
+    if (!userId || !token) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
+    const supabase = createSupabaseClient(token)
 
     const params = await context.params
     const conversationId = params.id
@@ -160,7 +166,7 @@ export async function DELETE (
     return NextResponse.json({
       success: true
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error deleting conversation:', error)
     return NextResponse.json(
       { error: 'Failed to delete conversation' },

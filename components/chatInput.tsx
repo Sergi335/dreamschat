@@ -21,7 +21,7 @@ export default function ChatInput ({
     submitStatus: 'submitted' | 'streaming' | 'error' | undefined
 }) {
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-xl mx-auto">
       <div className="flex gap-2">
         <PromptInput onSubmit={e => {
           e.preventDefault()
@@ -32,6 +32,7 @@ export default function ChatInput ({
             onChange={e => setInput(e.target.value)}
             aria-label="Prompt"
             spellCheck={true}
+            className="ring-offset-secondary"
           />
           <PromptInputToolbar className="p-3">
             <Mic />

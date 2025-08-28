@@ -1,4 +1,4 @@
-import { supabase } from './supabase'
+import { SupabaseClient } from '@supabase/supabase-js'
 
 export interface Message {
   id: string;
@@ -44,7 +44,10 @@ const convertDbToAppConversation = (dbConversation: DBConversation, dbMessages: 
 }
 
 // Obtener todas las conversaciones del usuario
-export const getUserConversations = async (userId: string): Promise<Conversation[]> => {
+export const getUserConversations = async (
+  supabase: SupabaseClient,
+  userId: string
+): Promise<Conversation[]> => {
   try {
     // Obtener conversaciones
     const { data: conversations, error: convError } = await supabase
@@ -89,7 +92,11 @@ export const getUserConversations = async (userId: string): Promise<Conversation
 }
 
 // Crear una nueva conversación
-export const createConversation = async (userId: string, title: string): Promise<string | null> => {
+export const createConversation = async (
+  supabase: SupabaseClient,
+  userId: string,
+  title: string
+): Promise<string | null> => {
   try {
     const { data, error } = await supabase
       .from('conversations')
@@ -110,7 +117,11 @@ export const createConversation = async (userId: string, title: string): Promise
 }
 
 // Actualizar el título de una conversación
-export const updateConversationTitle = async (conversationId: string, title: string): Promise<boolean> => {
+export const updateConversationTitle = async (
+  supabase: SupabaseClient,
+  conversationId: string,
+  title: string
+): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from('conversations')
@@ -130,6 +141,7 @@ export const updateConversationTitle = async (conversationId: string, title: str
 
 // Agregar un mensaje a una conversación
 export const addMessage = async (
+  supabase: SupabaseClient,
   conversationId: string,
   role: 'user' | 'assistant',
   content: string
@@ -162,7 +174,10 @@ export const addMessage = async (
 }
 
 // Eliminar una conversación y todos sus mensajes
-export const deleteConversation = async (conversationId: string): Promise<boolean> => {
+export const deleteConversation = async (
+  supabase: SupabaseClient,
+  conversationId: string
+): Promise<boolean> => {
   try {
     // Primero eliminar los mensajes
     const { error: msgError } = await supabase
@@ -188,18 +203,19 @@ export const deleteConversation = async (conversationId: string): Promise<boolea
 
 // Migrar conversaciones locales a la base de datos
 export const migrateLocalConversations = async (
+  supabase: SupabaseClient,
   userId: string,
   localConversations: Conversation[]
 ): Promise<boolean> => {
   try {
     for (const conv of localConversations) {
       // Crear conversación
-      const conversationId = await createConversation(userId, conv.title)
+      const conversationId = await createConversation(supabase, userId, conv.title)
       if (!conversationId) continue
 
       // Agregar mensajes
       for (const msg of conv.messages) {
-        await addMessage(conversationId, msg.role, msg.content)
+        await addMessage(supabase, conversationId, msg.role, msg.content)
       }
     }
     return true
