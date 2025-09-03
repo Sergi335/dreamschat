@@ -23,8 +23,8 @@ type LocalConversation = Omit<Conversation, 'lastUpdated' | 'messages'> & {
 // Check if Clerk is available
 const isClerkAvailable = () => {
   try {
-    return process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && 
-           process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.startsWith('pk_')
+    const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+    return publishableKey && publishableKey.length > 0 && publishableKey.startsWith('pk_')
   } catch {
     return false
   }

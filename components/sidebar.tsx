@@ -16,9 +16,21 @@ interface SidebarProps {
   locale?: string;
 }
 
+// Check if Clerk is available
+const isClerkAvailable = () => {
+  try {
+    const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+    return publishableKey && publishableKey.length > 0 && publishableKey.startsWith('pk_')
+  } catch {
+    return false
+  }
+}
+
 export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(
   ({ setError, locale }, inputRef) => {
-    const { user } = useUser()
+    // Conditionally use useUser only if Clerk is available
+    const clerkData = isClerkAvailable() ? useUser() : { user: null, isLoaded: true }
+    const { user } = clerkData
 
     const router = useRouter()
     const t = useTranslations()
@@ -156,26 +168,28 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(
         </ScrollArea>
 
         {/* User info and settings */}
-        <div className="p-4 border-t border-gray-700">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center space-x-3">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={user?.imageUrl} />
-                <AvatarFallback>
-                  <User className="h-4 w-4" />
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">
-                  {user?.firstName || user?.emailAddresses[0]?.emailAddress}
-                </p>
+        {isClerkAvailable() && user && (
+          <div className="p-4 border-t border-gray-700">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-3">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={user?.imageUrl} />
+                  <AvatarFallback>
+                    <User className="h-4 w-4" />
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">
+                    {user?.firstName || user?.emailAddresses[0]?.emailAddress}
+                  </p>
+                </div>
               </div>
+              <SignOutButton redirectUrl="/es">
+                <button><LogOut className="h-4 w-4" /></button>
+              </SignOutButton>
             </div>
-            <SignOutButton redirectUrl="/es">
-              <button><LogOut className="h-4 w-4" /></button>
-            </SignOutButton>
           </div>
-        </div>
+        )}
       </div>
     )
   }

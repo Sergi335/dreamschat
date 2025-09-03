@@ -1,6 +1,5 @@
 // hooks/useChatMessages.ts - Hook principal refactorizado
 import { useConversations } from '@/context/conversations-context'
-import { useUser } from '@clerk/nextjs'
 import { useCallback, useEffect, useRef } from 'react'
 import { useChatState } from './useChatState'
 import { useLLMApi } from './useLLMApi'
@@ -10,7 +9,8 @@ import { useScrollManager } from './useScrollManager'
 import { useTypingEffect } from './useTypingEffect'
 
 export default function useChatMessages () {
-  const { user } = useUser()
+  // For now, we'll use a mock user when Clerk is not available
+  const user = null // This will be properly handled when authentication is set up
   const {
     conversations,
     activeConversationId,
