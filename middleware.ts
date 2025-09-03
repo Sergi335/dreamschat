@@ -7,48 +7,35 @@ const isProtectedRoute = createRouteMatcher([
 ])
 
 const intlMiddleware = createIntlMiddleware({
-  // A list of all locales that are supported
   locales: ['es', 'en'],
-
-  // Used when no locale matches
   defaultLocale: 'es'
 })
 
 export default clerkMiddleware(async (auth, req) => {
   const { pathname } = req.nextUrl
 
-  // Skip internationalization for API routes
+  // IMPORTANTE: Excluir COMPLETAMENTE las rutas de API del middleware de internacionalización
   if (pathname.startsWith('/api/')) {
-    // Check if Clerk is properly configured
-    const isClerkConfigured = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
-      process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.startsWith('pk_')
-
-    if (isClerkConfigured && isProtectedRoute(req)) {
+    // Solo manejar autenticación de Clerk para rutas protegidas
+    if (isProtectedRoute(req)) {
       await auth.protect()
     }
-
     return NextResponse.next()
   }
 
-  // Handle internationalization for non-API routes
+  // Para rutas que NO son API, aplicar internacionalización
   const intlResponse = intlMiddleware(req)
-  if (intlResponse && intlResponse.status === 307) {
+  if (intlResponse) {
     return intlResponse
   }
 
-  // Check if Clerk is properly configured
-  const isClerkConfigured = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.startsWith('pk_')
-
-  if (!isClerkConfigured) {
-    return NextResponse.next()
-  }
-
-  // Handle Clerk authentication for dashboard routes
+  // Manejar autenticación para rutas del dashboard
   const match = pathname.match(/^\/(es|en)\/dashboard/)
-  const session = await auth()
-  if (match && !session.userId) {
-    return NextResponse.redirect(new URL(`/${match[1]}/sign-in`, req.url))
+  if (match) {
+    const session = await auth()
+    if (!session.userId) {
+      return NextResponse.redirect(new URL(`/${match[1]}/sign-in`, req.url))
+    }
   }
 
   return NextResponse.next()
@@ -56,7 +43,11 @@ export default clerkMiddleware(async (auth, req) => {
 
 export const config = {
   matcher: [
+    // Incluir rutas de API para autenticación
     '/api/(.*)',
-    '/((?!_next|static|favicon.ico).*)'
+    // Excluir archivos estáticos pero incluir todas las demás rutas para internacionalización
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    // Incluir la ruta raíz
+    '/'
   ]
 }
