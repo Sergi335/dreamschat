@@ -1,5 +1,5 @@
 import { ConversationsProvider } from '@/context/conversations-context'
-// import { ClerkProvider } from '@clerk/nextjs'
+import { ClerkProvider } from '@clerk/nextjs'
 import { NextIntlClientProvider } from 'next-intl'
 import React from 'react'
 import './globals.css'
@@ -22,13 +22,23 @@ export default async function LocaleLayout ({
     messages = (await import(`../../messages/es.json`)).default
   }
 
+  // Check if Clerk is properly configured
+  const isClerkConfigured = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && 
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.startsWith('pk_')
+
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
-      {/* <ClerkProvider> */}
-        {/* <ConversationsProvider> */}
+      {isClerkConfigured ? (
+        <ClerkProvider>
+          <ConversationsProvider>
+            {children}
+          </ConversationsProvider>
+        </ClerkProvider>
+      ) : (
+        <ConversationsProvider>
           {children}
-        {/* </ConversationsProvider> */}
-      {/* </ClerkProvider> */}
+        </ConversationsProvider>
+      )}
     </NextIntlClientProvider>
   )
 }

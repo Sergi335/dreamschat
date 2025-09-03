@@ -20,8 +20,21 @@ type LocalConversation = Omit<Conversation, 'lastUpdated' | 'messages'> & {
   messages: LocalMessage[]
 }
 
+// Check if Clerk is available
+const isClerkAvailable = () => {
+  try {
+    return process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY && 
+           process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.startsWith('pk_')
+  } catch {
+    return false
+  }
+}
+
 export const useConversations = (): UseConversationsReturn => {
-  const { user, isLoaded } = useUser()
+  // Conditionally use useUser only if Clerk is available
+  const clerkData = isClerkAvailable() ? useUser() : { user: null, isLoaded: true }
+  const { user, isLoaded } = clerkData
+  
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
