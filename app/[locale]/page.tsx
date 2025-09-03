@@ -1,10 +1,10 @@
 'use client'
 // import Link from 'next/link'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
+// import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
 import { ArrowRight, Brain, Check, ChevronDown, Clock, Menu, Send, Wand2 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import { useParams, usePathname } from 'next/navigation'
+import { useParams, usePathname, useRouter } from 'next/navigation'
 
 const locales = [
   { code: 'es', label: 'Español' },
@@ -15,6 +15,7 @@ const validLocales = locales.map(l => l.code)
 export default function Page () {
   const pathname = usePathname()
   const params = useParams()
+  const router = useRouter()
   let locale = typeof params.locale === 'string' ? params.locale : Array.isArray(params.locale) ? params.locale[0] : 'es'
   if (!validLocales.includes(locale)) {
     locale = 'es' // o el idioma por defecto que prefieras
@@ -43,8 +44,8 @@ export default function Page () {
           <div className="flex items-center space-x-4">
             {/* ...tu header y contenido... */}
             <div className="">
-              <Select value={pathname.split('/')[1]} onValueChange={value => {
-                window.location.pathname = `/${value}${pathWithoutLocale}`
+              <Select value={locale} onValueChange={value => {
+                router.push(`/${value}${pathWithoutLocale}`)
               }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecciona..." />
@@ -55,14 +56,14 @@ export default function Page () {
                 </SelectContent>
               </Select>
             </div>
-            <SignedIn>
+            {/* <SignedIn>
               <a href={`/${locale}/dashboard`} className="hidden sm:inline-block text-xs font-medium px-4 py-2 rounded-md transition-all">Chat</a>
               <UserButton />
             </SignedIn>
-            <SignedOut>
+            <SignedOut> */}
               <a href={`/${locale}/dashboard`} className="hidden sm:inline-block text-xs font-medium px-4 py-2 rounded-md ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all">{t('login')}</a>
               <a href={`/${locale}/dashboard`} className="text-xs font-medium px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 transition-colors">{t('getStarted')}</a>
-            </SignedOut>
+            {/* </SignedOut> */}
 
             {/* <!-- Mobile Menu --> */}
             <button id="menuBtn" className="md:hidden p-2 rounded-md ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all">

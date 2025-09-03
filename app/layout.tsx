@@ -1,7 +1,8 @@
 import { ConversationsProvider } from '@/context/conversations-context'
-import { ClerkProvider } from '@clerk/nextjs'
+// import { ClerkProvider } from '@clerk/nextjs'
 import type { Metadata } from 'next'
 import { NextIntlClientProvider } from 'next-intl'
+import { getMessages } from 'next-intl/server'
 import { Inter } from 'next/font/google'
 // import { notFound } from 'next/navigation'
 import React from 'react'
@@ -21,24 +22,20 @@ export default async function RootLayout ({
   params: Promise<{ locale: string }>
 }) {
   const { locale } = await params
+  
+  // Providing all messages to the client side is the easiest way to get started
+  const messages = await getMessages()
 
-  let messages
-  try {
-    messages = (await import(`../messages/${locale}.json`)).default
-  } catch (error) {
-    // notFound()
-  }
   return (
     <html>
       <body className={`${inter.className} dark bg-primary text-neutral-100 font-sans leading-relaxed selection:bg-neutral-700/60`}>
-        <ClerkProvider>
-          <ConversationsProvider>
-            {/* Provide appropriate locale and messages props here */}
+        {/* <ClerkProvider> */}
+          {/* <ConversationsProvider> */}
             <NextIntlClientProvider locale={locale} messages={messages}>
               {children}
             </NextIntlClientProvider>
-          </ConversationsProvider>
-        </ClerkProvider>
+          {/* </ConversationsProvider> */}
+        {/* </ClerkProvider> */}
       </body>
     </html>
   )
