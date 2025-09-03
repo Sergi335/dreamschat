@@ -59,20 +59,16 @@ export default function useChatMessages () {
     }
   }, [uniqueMessages, autoScroll, scrollToBottom])
 
-  // // Limpiar estado al cambiar conversación
-  // useEffect(() => {
-  //   if (activeConversationId) {
-  //     resetForConversationChange()
-  //     // Resetear estado de scroll cuando cambia la conversación activa
-  //     resetScrollState()
-  //   }
-  // }, [activeConversationId, resetForConversationChange, resetScrollState])
-
-  // // Configurar scroll manager con parámetros mejorados
-  // useEffect(() => {
-  //   const cleanup = manageScrollBehavior(state.isTyping, uniqueMessages, activeConversationId)
-  //   return cleanup
-  // }, [manageScrollBehavior, state.isTyping, uniqueMessages, activeConversationId])
+  // Detectar cuando se selecciona una conversación existente
+  useEffect(() => {
+    if (activeConversationId && activeConversation && activeConversation.messages.length > 0) {
+      // Si hay una conversación activa con mensajes, no es un chat inicial
+      updateState({ isInitialChat: false })
+    } else if (!activeConversationId) {
+      // Si no hay conversación activa, es un chat inicial
+      updateState({ isInitialChat: true })
+    }
+  }, [activeConversationId, activeConversation, updateState])
 
   // Función para iniciar nuevo chat
   const startNewChat = useCallback(() => {

@@ -40,7 +40,11 @@ export const useConversations = (): UseConversationsReturn => {
       }
 
       const data: { conversations: Conversation[] } = await response.json()
-      setConversations(data.conversations || [])
+      // Ordenar conversaciones por lastUpdated (más recientes primero)
+      const sortedConversations = (data.conversations || []).sort(
+        (a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
+      )
+      setConversations(sortedConversations)
       setError(null)
     } catch (err) {
       const errorObj = err as Error
@@ -97,12 +101,13 @@ export const useConversations = (): UseConversationsReturn => {
 
       const newConversation: Conversation = await response.json()
 
-      // 3. Reemplaza la conversación optimista por la real
-      setConversations(prev =>
-        prev.map(conv =>
-          conv.id === tempId ? newConversation : conv
+      // Actualizar estado con la conversación real y reordenar
+      setConversations(prev => {
+        const updated = [newConversation, ...prev.filter(c => c.id !== newConversation.id)]
+        return updated.sort(
+          (a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()
         )
-      )
+      })
       setActiveConversationId(newConversation.id)
       return newConversation.id
     } catch (err) {
@@ -158,11 +163,14 @@ export const useConversations = (): UseConversationsReturn => {
             ? {
               ...conv,
               messages: conv.messages.map(msg =>
-                msg.id === tempMessage.id ? { ...savedMessage, timestamp: new Date(savedMessage.timestamp) } : msg
-              )
+                msg.id === tempMessage.id
+                  ? { ...savedMessage, timestamp: new Date(savedMessage.timestamp) }
+                  : msg
+              ),
+              lastUpdated: new Date() // Esto es importante
             }
             : conv
-        ))
+        ).sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime()))
       }
     } catch (err) {
       const errorObj = err as Error
