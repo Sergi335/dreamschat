@@ -20,7 +20,6 @@ export default function Page () {
   if (!validLocales.includes(locale)) {
     locale = 'es' // o el idioma por defecto que prefieras
   }
-  console.log('🚀 ~ Page ~ locale:', locale)
   // Elimina el locale actual del pathname para construir la nueva ruta
   const pathWithoutLocale = pathname.replace(/^\/(es|en)/, '')
   const t = useTranslations()
