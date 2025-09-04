@@ -1,11 +1,10 @@
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useConversations } from '@/context/conversations-context'
 import useChatMessages from '@/hooks/useChatMessages'
 import { cn } from '@/lib/utils'
-import { SignOutButton, useUser } from '@clerk/nextjs'
-import { LogOut, Plus, Trash2, User } from 'lucide-react'
+import { UserButton, useUser } from '@clerk/nextjs'
+import { Plus, Trash2 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -103,7 +102,7 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(
       )}>
         {/* Header */}
         <header className="flex flex-col items-start p-4 min-h-20">
-          <h1 className="text-xl font-bold">Dream<span className="text-accent font-normal">Reader</span></h1>
+          <Link href="/" className="text-xl font-bold">Dream<span className="text-accent font-normal">Reader</span></Link>
           {/* New conversation button */}
           <div className="py-4 my-4 border-y border-gray-700">
             <Button
@@ -156,24 +155,16 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(
         </ScrollArea>
 
         {/* User info and settings */}
-        <div className="p-4 border-t border-gray-700">
-          <div className="flex items-center justify-between mb-3">
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-3 border-t border-gray-700 py-4">
             <div className="flex items-center space-x-3">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={user?.imageUrl} />
-                <AvatarFallback>
-                  <User className="h-4 w-4" />
-                </AvatarFallback>
-              </Avatar>
+              <UserButton />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">
                   {user?.firstName || user?.emailAddresses[0]?.emailAddress}
                 </p>
               </div>
             </div>
-            <SignOutButton redirectUrl="/es">
-              <button><LogOut className="h-4 w-4" /></button>
-            </SignOutButton>
           </div>
         </div>
       </div>

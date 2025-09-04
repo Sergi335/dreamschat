@@ -1,8 +1,7 @@
 'use client'
-'use client'
 // import Link from 'next/link'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-// import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
+import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
 import { ArrowRight, Brain, Check, ChevronDown, Clock, Menu, Send, Wand2 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useParams, usePathname, useRouter } from 'next/navigation'
@@ -27,9 +26,9 @@ export default function Page () {
   return (
     <>
       {/* <!-- Top Navigation --> */}
-      <header className="w-full backdrop-blur supports-backdrop-blur:bg-neutral-800/60 bg-neutral-900/80 sticky top-0 z-40">
+      <header className="w-full backdrop-blur supports-backdrop-blur:bg-primary/80 bg-primary/80 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-4 flex items-center justify-between">
-          <a href={`/${locale}/dashboard`} className="text-lg font-semibold tracking-tight flex items-center space-x-1">
+          <a href={`/${locale}/dashboard`} className="text-lg font-semibold tracking-tight flex flex-1 items-center space-x-1">
             <span className="border border-neutral-700 rounded-md px-2 py-0.5">DR</span>
             <span className="sr-only">Dreamscape</span>
           </a>
@@ -41,7 +40,7 @@ export default function Page () {
             <a href="#faq" className="hover:text-white transition-colors">{t('faq')}</a>
           </nav>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-1 justify-end items-center space-x-4">
             {/* ...tu header y contenido... */}
             <div className="">
               <Select value={locale} onValueChange={value => {
@@ -56,14 +55,14 @@ export default function Page () {
                 </SelectContent>
               </Select>
             </div>
-            {/* <SignedIn>
+            <SignedIn>
               <a href={`/${locale}/dashboard`} className="hidden sm:inline-block text-xs font-medium px-4 py-2 rounded-md transition-all">Chat</a>
               <UserButton />
             </SignedIn>
-            <SignedOut> */}
-            <a href={`/${locale}/dashboard`} className="hidden sm:inline-block text-xs font-medium px-4 py-2 rounded-md ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all">{t('login')}</a>
-            <a href={`/${locale}/dashboard`} className="text-xs font-medium px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 transition-colors">{t('getStarted')}</a>
-            {/* </SignedOut> */}
+            <SignedOut>
+              <a href={`/${locale}/dashboard`} className="hidden sm:inline-block text-xs font-medium px-4 py-2 rounded-md ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all">{t('login')}</a>
+              <a href={`/${locale}/dashboard`} className="text-xs font-medium px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 transition-colors">{t('getStarted')}</a>
+            </SignedOut>
 
             {/* <!-- Mobile Menu --> */}
             <button id="menuBtn" className="md:hidden p-2 rounded-md ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all">
@@ -85,9 +84,9 @@ export default function Page () {
       </header>
 
       {/* <!-- Hero --> */}
-      <section className="relative overflow-hidden" style={{ backgroundColor: 'rgb(23 23 23 / 95%)' }}>
+      <section className="relative overflow-hidden bg-primary/90">
         {/* <!-- Graphic with fluorescent animated border --> */}
-        <video src="./Generated File August 16, 2025 - 2_18AM.mp4" autoPlay loop muted className="absolute inset-0 w-full h-full object-none -z-10"></video>
+        <video src="/video.mp4" autoPlay loop muted className="absolute inset-0 w-full h-full object-none -z-10"></video>
 
         <div className="max-w-3xl mx-auto px-6 lg:px-0 py-28 md:py-40 text-center">
           <h1 className="text-4xl md:text-6xl font-semibold tracking-tight mb-6">{t('unlockLanguage')}</h1>
@@ -101,14 +100,14 @@ export default function Page () {
 
       {/* <!-- Chat-like Prompt --> */}
       <section id="chat" className="max-w-3xl mx-auto px-6 lg:px-0 mt-20">
-        <h2 className="text-2xl md:text-3xl font-semibold tracking-tight mb-6">{t('askAboutDream')}</h2>
+        <h2 className="hidden text-2xl md:text-3xl font-semibold tracking-tight mb-6">{t('askAboutDream')}</h2>
 
         {/* <!-- Chat Container --> */}
         <div className="space-y-4 mb-6"></div>
 
         {/* <!-- Input --> */}
         <form className="sticky bottom-6">
-          <div className="flex items-center bg-neutral-800/60 ring-1 ring-neutral-700 rounded-lg px-4 py-3">
+          <div className="flex items-center bg-secondary ring-1 ring-neutral-700 rounded-lg px-4 py-3">
             <input type="text" placeholder={t('describeDream')} className="flex-grow bg-transparent outline-none text-sm placeholder-neutral-500"></input>
             <button type="submit" className="ml-4 p-2 rounded-md hover:bg-neutral-700/60 transition-colors">
               <Send className="w-5 h-5 stroke-neutral-200" />
@@ -123,24 +122,24 @@ export default function Page () {
         <div className="grid md:grid-cols-3 gap-10">
 
           {/* <!-- Feature --> */}
-          <div className="bg-neutral-800/60 p-6 rounded-lg ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all">
-            <div className="mb-4 p-2 rounded-md ring-1 ring-neutral-700 inline-block">
+          <div className="bg-[#734611] p-6 rounded-lg ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all">
+            <div className="mb-4 p-2 rounded-md ring-neutral-700 inline-block">
               <Brain className="w-5 h-5 stroke-neutral-200" />
             </div>
             <h3 className="font-medium mb-2">{t('evidenceBased')}</h3>
             <p className="text-sm text-neutral-400">{t('evidenceBasedDesc')}</p>
           </div>
 
-          <div className="bg-neutral-800/60 p-6 rounded-lg ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all">
-            <div className="mb-4 p-2 rounded-md ring-1 ring-neutral-700 inline-block">
+          <div className="bg-[#4f46e5] p-6 rounded-lg ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all">
+            <div className="mb-4 p-2 rounded-md ring-neutral-700 inline-block">
               <Wand2 className="w-5 h-5 stroke-neutral-200" />
             </div>
             <h3 className="font-medium mb-2">{t('aiEnhanced')}</h3>
             <p className="text-sm text-neutral-400">{t('aiEnhancedDesc')}</p>
           </div>
 
-          <div className="bg-neutral-800/60 p-6 rounded-lg ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all">
-            <div className="mb-4 p-2 rounded-md ring-1 ring-neutral-700 inline-block">
+          <div className="bg-[#6d132d] p-6 rounded-lg ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all">
+            <div className="mb-4 p-2 rounded-md ring-neutral-700 inline-block">
               <Clock className="w-5 h-5 stroke-neutral-200" />
             </div>
             <h3 className="font-medium mb-2">{t('instantInsights')}</h3>

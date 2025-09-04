@@ -23,6 +23,20 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.next()
   }
 
+  // Excluir otras rutas que no necesitan internacionalización
+  if (
+    pathname.startsWith('/_next') || // Next.js internals
+    pathname.startsWith('/static') || // Static files
+    pathname.startsWith('/public') || // Public folder
+    pathname.startsWith('/favicon') || // Favicons
+    pathname.startsWith('/robots') || // robots.txt
+    pathname.startsWith('/sitemap') || // sitemap.xml
+    pathname.startsWith('/manifest') || // manifest.json
+    (pathname.includes('.') && !pathname.endsWith('/')) // Files with extensions (except directories)
+  ) {
+    return NextResponse.next()
+  }
+
   // Para rutas que NO son API, aplicar internacionalización
   const intlResponse = intlMiddleware(req)
   if (intlResponse) {
@@ -45,8 +59,8 @@ export const config = {
   matcher: [
     // Incluir rutas de API para autenticación
     '/api/(.*)',
-    // Excluir archivos estáticos pero incluir todas las demás rutas para internacionalización
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    // Excluir archivos estáticos y otras rutas especiales
+    '/((?!_next/static|_next/image|favicon|public|static|robots|sitemap|manifest|.*\\..*).*)',
     // Incluir la ruta raíz
     '/'
   ]

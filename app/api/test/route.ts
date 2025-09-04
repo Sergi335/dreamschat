@@ -41,10 +41,11 @@ export async function GET () {
         hasKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
       }
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Test error:', error)
+    const message = error instanceof Error ? error.message : String(error)
     return NextResponse.json(
-      { error: 'Server error', details: error.message },
+      { error: 'Server error', details: message },
       { status: 500 }
     )
   }
