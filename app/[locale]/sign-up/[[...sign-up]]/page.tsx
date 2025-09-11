@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 export default function Page () {
   const params = useParams()
   const locale = typeof params.locale === 'string' ? params.locale : Array.isArray(params.locale) ? params.locale[0] : 'es'
+
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center">
       <div className="max-w-md w-full space-y-8">
@@ -18,7 +19,7 @@ export default function Page () {
         </div>
         <SignUp
           signInUrl={`/${locale}/sign-in`}
-          fallbackRedirectUrl={`/${locale}/dashboard`}
+          forceRedirectUrl={`/${locale}/redirect-to-payment`}
         />
       </div>
     </div>

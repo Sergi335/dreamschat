@@ -1,5 +1,7 @@
 'use client'
 // import Link from 'next/link'
+import ManageSubscriptionButton from '@/components/manage-sub-button'
+import SubscribeButton from '@/components/subscribe-button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
 import { ArrowRight, Brain, Check, ChevronDown, Clock, Menu, Send, Wand2 } from 'lucide-react'
@@ -28,7 +30,7 @@ export default function Page () {
       {/* <!-- Top Navigation --> */}
       <header className="w-full backdrop-blur supports-backdrop-blur:bg-primary/80 bg-primary/80 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-4 flex items-center justify-between">
-          <a href={`/${locale}/dashboard`} className="text-lg font-semibold tracking-tight flex flex-1 items-center space-x-1">
+          <a href={`/${locale}/sign-in`} className="text-lg font-semibold tracking-tight flex flex-1 items-center space-x-1">
             <span className="border border-neutral-700 rounded-md px-2 py-0.5">DR</span>
             <span className="sr-only">Dreamscape</span>
           </a>
@@ -58,10 +60,12 @@ export default function Page () {
             <SignedIn>
               <a href={`/${locale}/dashboard`} className="hidden sm:inline-block text-xs font-medium px-4 py-2 rounded-md transition-all">Chat</a>
               <UserButton />
+              <SubscribeButton priceId="price_1N8Z2L2eZvKYlo2C1H5g5g5g" />
+              <ManageSubscriptionButton customerId="cus_N8Z2L2eZvKYlo2C1H5g5g5g" />
             </SignedIn>
             <SignedOut>
-              <a href={`/${locale}/dashboard`} className="hidden sm:inline-block text-xs font-medium px-4 py-2 rounded-md ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all">{t('login')}</a>
-              <a href={`/${locale}/dashboard`} className="text-xs font-medium px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 transition-colors">{t('getStarted')}</a>
+              <a href={`/${locale}/sign-in`} className="hidden sm:inline-block text-xs font-medium px-4 py-2 rounded-md ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all">{t('login')}</a>
+              <a href={`/${locale}/sign-up`} className="text-xs font-medium px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 transition-colors">{t('getStarted')}</a>
             </SignedOut>
 
             {/* <!-- Mobile Menu --> */}
@@ -91,7 +95,7 @@ export default function Page () {
         <div className="max-w-3xl mx-auto px-6 lg:px-0 py-28 md:py-40 text-center">
           <h1 className="text-4xl md:text-6xl font-semibold tracking-tight mb-6">{t('unlockLanguage')}</h1>
           <p className="text-neutral-400 max-w-xl mx-auto mb-10">{t('exploreSubconscious')}</p>
-          <a href={`/${locale}/dashboard`} className="inline-flex items-center text-sm font-medium px-6 py-3 rounded-md bg-indigo-600 hover:bg-indigo-500 transition-colors">
+          <a href={`/${locale}/sign-up`} className="inline-flex items-center text-sm font-medium px-6 py-3 rounded-md bg-indigo-600 hover:bg-indigo-500 transition-colors">
             {t('startInterpreting')}
             <ArrowRight className="w-4 h-4 stroke-2 ml-2" />
           </a>
@@ -170,7 +174,7 @@ export default function Page () {
               <li className="flex items-center space-x-2"><Check className="w-4 h-4 stroke-neutral-200" /><span>{t('interpretationsPerWeek')}</span></li>
               <li className="flex items-center space-x-2"><Check className="w-4 h-4 stroke-neutral-200" /><span>{t('basicSymbolLookup')}</span></li>
             </ul>
-            <a href={`/${locale}/dashboard`} className="mt-8 text-sm font-medium text-center px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 transition-colors">{t('getStarted')}</a>
+            <a href={`/${locale}/sign-up`} className="mt-8 text-sm font-medium text-center px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 transition-colors">{t('getStarted')}</a>
           </div>
 
           <div className="flex flex-col bg-neutral-800/60 rounded-lg ring-1 ring-indigo-600 hover:ring-indigo-400 transition-all p-8">

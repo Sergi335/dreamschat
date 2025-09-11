@@ -3,7 +3,10 @@ import createIntlMiddleware from 'next-intl/middleware'
 import { NextResponse } from 'next/server'
 
 const isProtectedRoute = createRouteMatcher([
-  '/api/(.*)'
+  '/dashboard(.*)',
+  '/dashboard',
+  '/(es|en)/dashboard(.*)',
+  '/(es|en)/dashboard'
 ])
 
 const intlMiddleware = createIntlMiddleware({
@@ -13,43 +16,41 @@ const intlMiddleware = createIntlMiddleware({
 
 export default clerkMiddleware(async (auth, req) => {
   const { pathname } = req.nextUrl
+  console.log('🚀 ~ pathname:', pathname)
 
-  // IMPORTANTE: Excluir COMPLETAMENTE las rutas de API del middleware de internacionalización
-  if (pathname.startsWith('/api/')) {
-    // Solo manejar autenticación de Clerk para rutas protegidas
-    if (isProtectedRoute(req)) {
-      await auth.protect()
+  // 1. Proteger rutas de API y dashboard
+  if (isProtectedRoute(req)) {
+    const session = await auth()
+    if (!session.userId) {
+      // Si es API, responde 401; si es dashboard, redirige
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+      }
+      return NextResponse.redirect(new URL('/sign-in', req.url))
     }
+    // Si está autenticado, sigue con la petición
     return NextResponse.next()
   }
 
-  // Excluir otras rutas que no necesitan internacionalización
+  // 2. Excluir archivos estáticos y públicos
   if (
-    pathname.startsWith('/_next') || // Next.js internals
-    pathname.startsWith('/static') || // Static files
-    pathname.startsWith('/public') || // Public folder
-    pathname.startsWith('/favicon') || // Favicons
-    pathname.startsWith('/robots') || // robots.txt
-    pathname.startsWith('/sitemap') || // sitemap.xml
-    pathname.startsWith('/manifest') || // manifest.json
-    (pathname.includes('.') && !pathname.endsWith('/')) // Files with extensions (except directories)
+    pathname.startsWith('/api/') ||
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/static') ||
+    pathname.startsWith('/public') ||
+    pathname.startsWith('/favicon') ||
+    pathname.startsWith('/robots') ||
+    pathname.startsWith('/sitemap') ||
+    pathname.startsWith('/manifest') ||
+    (pathname.includes('.') && !pathname.endsWith('/'))
   ) {
     return NextResponse.next()
   }
 
-  // Para rutas que NO son API, aplicar internacionalización
+  // 3. Internacionalización para el resto de rutas
   const intlResponse = intlMiddleware(req)
   if (intlResponse) {
     return intlResponse
-  }
-
-  // Manejar autenticación para rutas del dashboard
-  const match = pathname.match(/^\/(es|en)\/dashboard/)
-  if (match) {
-    const session = await auth()
-    if (!session.userId) {
-      return NextResponse.redirect(new URL(`/${match[1]}/sign-in`, req.url))
-    }
   }
 
   return NextResponse.next()
@@ -57,11 +58,11 @@ export default clerkMiddleware(async (auth, req) => {
 
 export const config = {
   matcher: [
-    // Incluir rutas de API para autenticación
-    '/api/(.*)',
-    // Excluir archivos estáticos y otras rutas especiales
+    '/dashboard(.*)',
+    '/dashboard',
+    '/(es|en)/dashboard(.*)',
+    '/(es|en)/dashboard',
     '/((?!_next/static|_next/image|favicon|public|static|robots|sitemap|manifest|.*\\..*).*)',
-    // Incluir la ruta raíz
     '/'
   ]
 }
