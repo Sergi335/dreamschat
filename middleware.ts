@@ -15,20 +15,29 @@ const intlMiddleware = createIntlMiddleware({
 })
 
 export default clerkMiddleware(async (auth, req) => {
-  const { pathname } = req.nextUrl
+  const { pathname, searchParams } = req.nextUrl
   console.log('🚀 ~ pathname:', pathname)
 
-  // 1. Proteger rutas de API y dashboard
+  // Verificar si es una petición de dashboard con prompt (modo guest)
+  const hasPromptParam = searchParams.has('prompt')
+  const isDashboardRoute = pathname.match(/^\/(es|en)\/dashboard/) || pathname === '/dashboard'
+
+  // 1. Proteger rutas de API y dashboard (excepto dashboard con prompt)
   if (isProtectedRoute(req)) {
     const session = await auth()
-    if (!session.userId) {
-      // Si es API, responde 401; si es dashboard, redirige
+
+    // Permitir acceso al dashboard sin autenticación si hay prompt (modo guest)
+    if (!session.userId && isDashboardRoute && hasPromptParam) {
+      // Continuar sin autenticación para modo guest
+      console.log('🔓 Allowing guest access to dashboard with prompt')
+    } else if (!session.userId) {
+      // Si es API, responde 401; si es dashboard sin prompt, redirige
       if (pathname.startsWith('/api/')) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
       }
       return NextResponse.redirect(new URL('/sign-in', req.url))
     }
-    // Si está autenticado, sigue con la petición
+    // Si está autenticado o es modo guest con prompt, sigue con la petición
     return NextResponse.next()
   }
 

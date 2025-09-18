@@ -1,7 +1,8 @@
 // hooks/useChatMessages.ts - Hook principal refactorizado
 import { useConversations } from '@/context/conversations-context'
 import { useUser } from '@clerk/nextjs'
-import { useCallback, useEffect, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useChatState } from './useChatState'
 import { useLLMApi } from './useLLMApi'
 import { useMessageMerging } from './useMessageMerging'
@@ -10,7 +11,12 @@ import { useScrollManager } from './useScrollManager'
 import { useTypingEffect } from './useTypingEffect'
 
 export default function useChatMessages () {
-  const { user } = useUser()
+  const { user, isLoaded } = useUser()
+  const searchParams = useSearchParams()
+  const guestPromptProcessedRef = useRef(false)
+
+  // DEBUG: Log siempre para verificar que el hook se ejecuta
+  console.log('🔧 useChatMessages - user:', user, 'isLoaded:', isLoaded, 'searchParams:', searchParams?.toString())
   const {
     conversations,
     activeConversationId,
@@ -37,11 +43,29 @@ export default function useChatMessages () {
 
   const { scrollToBottom, autoScroll } = useScrollManager(messagesEndRef)
 
-  // Obtener conversación activa
-  const activeConversation = conversations.find(c => c.id === activeConversationId)
+  // Obtener conversación activa o crear virtual para guests
+  const activeConversation = useMemo(() => {
+    const found = conversations.find(c => c.id === activeConversationId)
+    if (found) return found
 
-  const relevantOptimisticMessages = state.optimisticMessages.filter(
-    m => m.conversationId === activeConversationId
+    // Conversación virtual para usuarios guest - LOGIC MAS ROBUSTA
+    if (activeConversationId === 'guest-session') {
+      console.log('🏗️ Creating virtual guest conversation')
+      return {
+        id: 'guest-session',
+        title: 'Chat de invitado',
+        lastUpdated: new Date(0), // Fecha fija para evitar cambios
+        messages: []
+      }
+    }
+
+    return null
+  }, [conversations, activeConversationId])
+
+  const relevantOptimisticMessages = useMemo(() =>
+    state.optimisticMessages.filter(
+      m => m.conversationId === activeConversationId || m.conversationId === 'guest-session'
+    ), [state.optimisticMessages, activeConversationId]
   )
   // Fusionar mensajes
   const uniqueMessages = useMessageMerging(
@@ -59,16 +83,70 @@ export default function useChatMessages () {
     }
   }, [uniqueMessages, autoScroll, scrollToBottom])
 
-  // Detectar cuando se selecciona una conversación existente
+  // Detectar cuando se selecciona una conversación existente - VERSIÓN SIMPLIFICADA
   useEffect(() => {
-    if (activeConversationId && activeConversation && activeConversation.messages.length > 0) {
-      // Si hay una conversación activa con mensajes, no es un chat inicial
+    // Solo verificar si hay una conversación activa (sin depender del objeto activeConversation)
+    if (activeConversationId) {
       updateState({ isInitialChat: false })
-    } else if (!activeConversationId) {
-      // Si no hay conversación activa, es un chat inicial
+    } else {
       updateState({ isInitialChat: true })
     }
-  }, [activeConversationId, activeConversation, updateState])
+  }, [activeConversationId, updateState])
+
+  // MASTER useEffect para gestión de guest users
+  useEffect(() => {
+    const promptFromUrl = searchParams?.get('prompt')
+
+    console.log('🎮 MASTER useEffect - isLoaded:', isLoaded, 'user:', !!user, 'prompt:', promptFromUrl, 'activeConvId:', activeConversationId)
+
+    // Solo proceder cuando Clerk ha cargado
+    if (!isLoaded) return
+
+    // Si no hay usuario (guest mode)
+    if (!user) {
+      // Asegurar que hay conversación guest
+      if (!activeConversationId || activeConversationId !== 'guest-session') {
+        console.log('🚀 Setting guest-session for guest user')
+        setActiveConversationId('guest-session')
+      }
+
+      // Si hay prompt y no se ha procesado
+      if (promptFromUrl && !guestPromptProcessedRef.current) {
+        console.log('🔍 Processing guest prompt:', promptFromUrl)
+        guestPromptProcessedRef.current = true
+
+        // Formatear como pregunta sobre sueños
+        const formattedPrompt = `¿Qué significa soñar con ${promptFromUrl}?`
+
+        // Configurar input
+        updateState({
+          input: formattedPrompt,
+          isInitialChat: true
+        })
+
+        // Limpiar URL
+        if (typeof window !== 'undefined') {
+          const url = new URL(window.location.href)
+          url.searchParams.delete('prompt')
+          window.history.replaceState({}, '', url.toString())
+        }
+
+        // Auto-enviar (sin usar handleSendMessage en dependencias)
+        setTimeout(() => {
+          console.log('🚀 Auto-sending guest message')
+          // Encontrar el form y dispatchear evento submit
+          const form = document.querySelector('form[data-chat-form]') || document.querySelector('form')
+          if (form) {
+            const submitEvent = new Event('submit', { bubbles: true, cancelable: true })
+            form.dispatchEvent(submitEvent)
+          }
+        }, 1000)
+      }
+    } else {
+      // Reset para usuarios autenticados
+      guestPromptProcessedRef.current = false
+    }
+  }, [isLoaded, user, searchParams, activeConversationId, setActiveConversationId, updateState])
 
   // Función para iniciar nuevo chat
   const startNewChat = useCallback(() => {
@@ -81,8 +159,58 @@ export default function useChatMessages () {
     if (!state.input.trim() || state.isTyping) return
 
     try {
-      // Si es chat inicial, crear conversación primero
       let conversationId = activeConversationId
+
+      // Para usuarios guest (no autenticados)
+      if (!user) {
+        console.log('💭 Guest mode: sending message without saving to DB')
+        conversationId = 'guest-session'
+
+        // Crear mensaje optimista del usuario
+        const userMessage = createOptimisticMessage(state.input.trim(), 'user', 'guest-user', conversationId)
+        console.log('👤 Created guest user message:', userMessage)
+
+        // Actualizar estado con mensaje de usuario incluido
+        const messagesWithUser = [...state.optimisticMessages, userMessage]
+        updateState({
+          optimisticMessages: messagesWithUser,
+          input: '',
+          isTyping: true,
+          typingMessage: '',
+          error: '',
+          isInitialChat: false
+        })
+        console.log('📝 Added user message, total messages:', messagesWithUser.length)
+        shouldStopRef.current = false
+
+        // Obtener respuesta de la IA
+        const aiResponseContent = await callLLM([userMessage])
+
+        // Simular efecto de escritura
+        const finalContent = await simulateTyping(
+          aiResponseContent,
+          shouldStopRef,
+          (displayed) => updateState({ typingMessage: displayed })
+        )
+
+        // Crear mensaje optimista del asistente
+        const assistantMessage = createOptimisticMessage(finalContent, 'assistant', 'guest-ai', conversationId)
+        console.log('🤖 Created guest assistant message:', assistantMessage)
+
+        // Agregar mensaje del asistente a los mensajes existentes (que ya incluyen el del usuario)
+        const finalMessages = [...messagesWithUser, assistantMessage]
+
+        updateState({
+          optimisticMessages: finalMessages,
+          typingMessage: '',
+          isTyping: false
+        })
+        console.log('📝 Added assistant message, total messages:', finalMessages.length)
+
+        return // Salir temprano para guest users
+      }
+
+      // Para usuarios autenticados: lógica original
       if (state.isInitialChat) {
         conversationId = await createConversation('Nueva conversación')
         setActiveConversationId(conversationId)
@@ -176,6 +304,7 @@ export default function useChatMessages () {
     }
   }, [
     state,
+    user,
     activeConversationId,
     activeConversation,
     createConversation,

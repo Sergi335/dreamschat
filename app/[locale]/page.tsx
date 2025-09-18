@@ -29,12 +29,23 @@ export default function Page () {
   const t = useTranslations()
   const {
     isTyping,
-    handleSendMessage,
     handleStopTyping,
     input,
     setInput,
     submitStatus
   } = useChatMessages()
+
+  // Función para manejar el envío del input desde landing
+  const handleSubmitFromLanding = () => {
+    if (input.trim()) {
+      router.push(`/${locale}/dashboard?prompt=${encodeURIComponent(input.trim())}`)
+    }
+  }
+
+  // Función para manejar clicks en los chips
+  const handleChipClick = (dreamText: string) => {
+    router.push(`/${locale}/dashboard?prompt=${encodeURIComponent(dreamText)}`)
+  }
   return (
     <>
       {/* <!-- Top Navigation --> */}
@@ -123,7 +134,7 @@ export default function Page () {
         <ChatInput
           input={input}
           setInput={setInput}
-          handleSendMessage={handleSendMessage}
+          handleSendMessage={handleSubmitFromLanding}
           isTyping={isTyping}
           handleStopTyping={handleStopTyping}
           submitStatus={submitStatus}
@@ -133,13 +144,38 @@ export default function Page () {
       {/* <!-- Chips --> */}
       <section className="max-w-3xl mx-auto px-6 lg:px-0 py-20 justify-center items-center gap-8 flex flex-col">
         <div className="flex gap-8">
-          <p className="px-3 py-1 rounded-md bg-indigo-600 text-sm">Soñar con agua</p>
-          <p className="px-3 py-1 rounded-md bg-indigo-600 text-sm">Soñar con fuego</p>
-          <p className="px-3 py-1 rounded-md bg-indigo-600 text-sm">Soñar que caes</p>
+          <button
+            onClick={() => handleChipClick('Soñar con agua')}
+            className="px-3 py-1 rounded-md bg-indigo-600 hover:bg-indigo-500 transition-colors text-sm cursor-pointer"
+          >
+            Soñar con agua
+          </button>
+          <button
+            onClick={() => handleChipClick('Soñar con fuego')}
+            className="px-3 py-1 rounded-md bg-indigo-600 hover:bg-indigo-500 transition-colors text-sm cursor-pointer"
+          >
+            Soñar con fuego
+          </button>
+          <button
+            onClick={() => handleChipClick('Soñar que caes')}
+            className="px-3 py-1 rounded-md bg-indigo-600 hover:bg-indigo-500 transition-colors text-sm cursor-pointer"
+          >
+            Soñar que caes
+          </button>
         </div>
         <div className="flex gap-8">
-          <p className="px-3 py-1 rounded-md bg-indigo-600 text-sm">Soñar con un familiar</p>
-          <p className="px-3 py-1 rounded-md bg-indigo-600 text-sm">Soñar con un ex</p>
+          <button
+            onClick={() => handleChipClick('Soñar con un familiar')}
+            className="px-3 py-1 rounded-md bg-indigo-600 hover:bg-indigo-500 transition-colors text-sm cursor-pointer"
+          >
+            Soñar con un familiar
+          </button>
+          <button
+            onClick={() => handleChipClick('Soñar con un ex')}
+            className="px-3 py-1 rounded-md bg-indigo-600 hover:bg-indigo-500 transition-colors text-sm cursor-pointer"
+          >
+            Soñar con un ex
+          </button>
         </div>
       </section>
 
