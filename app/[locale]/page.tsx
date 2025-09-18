@@ -1,10 +1,12 @@
 'use client'
 // import Link from 'next/link'
+import ChatInput from '@/components/chatInput'
 import ManageSubscriptionButton from '@/components/manage-sub-button'
 import SubscribeButton from '@/components/subscribe-button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import useChatMessages from '@/hooks/useChatMessages'
 import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
-import { ArrowRight, Brain, Check, ChevronDown, Clock, Menu, Send, Wand2 } from 'lucide-react'
+import { ArrowRight, Brain, Check, ChevronDown, Clock, Menu, Wand2 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useParams, usePathname, useRouter } from 'next/navigation'
 
@@ -25,6 +27,14 @@ export default function Page () {
   // Elimina el locale actual del pathname para construir la nueva ruta
   const pathWithoutLocale = pathname.replace(/^\/(es|en)/, '')
   const t = useTranslations()
+  const {
+    isTyping,
+    handleSendMessage,
+    handleStopTyping,
+    input,
+    setInput,
+    submitStatus
+  } = useChatMessages()
   return (
     <>
       {/* <!-- Top Navigation --> */}
@@ -103,21 +113,34 @@ export default function Page () {
       </section>
 
       {/* <!-- Chat-like Prompt --> */}
-      <section id="chat" className="max-w-3xl mx-auto px-6 lg:px-0 mt-20">
+      <section id="chat" className="max-w-3xl mx-auto px-6 lg:px-0">
         <h2 className="hidden text-2xl md:text-3xl font-semibold tracking-tight mb-6">{t('askAboutDream')}</h2>
 
         {/* <!-- Chat Container --> */}
         <div className="space-y-4 mb-6"></div>
 
         {/* <!-- Input --> */}
-        <form className="sticky bottom-6">
-          <div className="flex items-center bg-secondary ring-1 ring-neutral-700 rounded-lg px-4 py-3">
-            <input type="text" placeholder={t('describeDream')} className="flex-grow bg-transparent outline-none text-sm placeholder-neutral-500"></input>
-            <button type="submit" className="ml-4 p-2 rounded-md hover:bg-neutral-700/60 transition-colors">
-              <Send className="w-5 h-5 stroke-neutral-200" />
-            </button>
-          </div>
-        </form>
+        <ChatInput
+          input={input}
+          setInput={setInput}
+          handleSendMessage={handleSendMessage}
+          isTyping={isTyping}
+          handleStopTyping={handleStopTyping}
+          submitStatus={submitStatus}
+        />
+      </section>
+
+      {/* <!-- Chips --> */}
+      <section className="max-w-3xl mx-auto px-6 lg:px-0 py-20 justify-center items-center gap-8 flex flex-col">
+        <div className="flex gap-8">
+          <p className="px-3 py-1 rounded-md bg-indigo-600 text-sm">Soñar con agua</p>
+          <p className="px-3 py-1 rounded-md bg-indigo-600 text-sm">Soñar con fuego</p>
+          <p className="px-3 py-1 rounded-md bg-indigo-600 text-sm">Soñar que caes</p>
+        </div>
+        <div className="flex gap-8">
+          <p className="px-3 py-1 rounded-md bg-indigo-600 text-sm">Soñar con un familiar</p>
+          <p className="px-3 py-1 rounded-md bg-indigo-600 text-sm">Soñar con un ex</p>
+        </div>
       </section>
 
       {/* <!-- Features --> */}
