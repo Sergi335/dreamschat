@@ -4,7 +4,15 @@ import { LLMProvider } from '@/lib/llm-providers'
 import { llmConfig } from '@/types/llmconfig.types'
 import { usePathname } from 'next/navigation'
 
-export default function DashboardHeader ({ activeConversation, currentProvider, llmConfig }: { activeConversation: Conversation | undefined, currentProvider: LLMProvider | undefined, llmConfig: llmConfig; }) {
+export default function DashboardHeader ({
+  activeConversation,
+  currentProvider,
+  llmConfig
+}: {
+  activeConversation?: Conversation | null,
+  currentProvider?: LLMProvider | undefined,
+  llmConfig?: llmConfig
+}) {
   const pathname = usePathname()
   const path = pathname.split('/')[2]
   return (
@@ -18,7 +26,7 @@ export default function DashboardHeader ({ activeConversation, currentProvider, 
                   <h2 className="font-semibold">
                     {activeConversation?.title || 'Selecciona una conversación'}
                   </h2>
-                  {currentProvider && (
+                  {currentProvider && llmConfig && (
                     <p className="text-sm text-gray-400">
                       {currentProvider.name} - {llmConfig.model}
                     </p>

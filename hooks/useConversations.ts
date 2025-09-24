@@ -29,7 +29,11 @@ export const useConversations = (): UseConversationsReturn => {
 
   // Cargar conversaciones del servidor
   const loadConversations = useCallback(async () => {
-    if (!user) return
+    if (!user) {
+      setConversations([])
+      setIsLoading(false)
+      return
+    }
 
     try {
       setIsLoading(true)

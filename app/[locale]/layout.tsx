@@ -1,4 +1,3 @@
-import { ConversationsProvider } from '@/context/conversations-context'
 import { ClerkProvider } from '@clerk/nextjs'
 import { NextIntlClientProvider } from 'next-intl'
 import React from 'react'
@@ -31,15 +30,13 @@ export default async function LocaleLayout ({
       {isClerkConfigured
         ? (
           <ClerkProvider>
-            <ConversationsProvider>
-              {children}
-            </ConversationsProvider>
+            {children}
           </ClerkProvider>
         )
         : (
-          <ConversationsProvider>
+          <>
             {children}
-          </ConversationsProvider>
+          </>
         )}
     </NextIntlClientProvider>
   )
