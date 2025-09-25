@@ -125,7 +125,7 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(
               href={`/${locale}/calendar`}
             >
               <Plus className="h-4 w-4 mr-2" />
-              Calendario
+              {user ? 'calendario' : 'calendario - pro'}
             </Link>
           </div>
         </header>

@@ -144,6 +144,7 @@ export default function useChatMessages () {
       }
     } else {
       // Reset para usuarios autenticados
+      // TODO debería crear la conversación del usuario como si lo hiciera desde el dashboard
       guestPromptProcessedRef.current = false
     }
   }, [isLoaded, user, searchParams, activeConversationId, setActiveConversationId, updateState])

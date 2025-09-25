@@ -65,6 +65,6 @@ describe('useChatMessages', () => {
     const { result } = renderHook(() => useChatMessages(), { wrapper })
 
     // activeConversation puede ser undefined al inicio
-    expect(result.current.activeConversation).toBeUndefined()
+    expect(result.current.activeConversation).toBeNull()
   })
 })
