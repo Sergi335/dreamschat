@@ -36,8 +36,8 @@ export default function Dashboard () {
   const t = useTranslations()
 
   // const currentProvider = getProviderById(llmConfig.providerId)
-  console.log('activeConversation', activeConversation)
-  console.log('uniqueMessages', uniqueMessages)
+  // console.log('activeConversation', activeConversation)
+  // console.log('uniqueMessages', uniqueMessages)
 
   return (
     <>

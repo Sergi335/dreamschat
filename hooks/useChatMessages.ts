@@ -23,7 +23,8 @@ export default function useChatMessages () {
     setActiveConversationId,
     createConversation,
     updateConversationTitle,
-    addMessage
+    addMessage,
+    isLoading
   } = useConversations()
 
   const {
@@ -61,6 +62,7 @@ export default function useChatMessages () {
 
     return null
   }, [conversations, activeConversationId])
+  console.log('🚀 ~ useChatMessages ~ activeConversation:', activeConversation)
 
   const relevantOptimisticMessages = useMemo(() =>
     state.optimisticMessages.filter(
@@ -351,6 +353,7 @@ export default function useChatMessages () {
     hasMessages,
     isTyping: state.isTyping,
     error: state.error,
+    isLoading,
 
     // Input
     input: state.input,
