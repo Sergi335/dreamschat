@@ -1,0 +1,236 @@
+<html lang="en"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dreamscape • Where Psychology Meets Sleep</title>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Neon border animation -->
+  <style>
+    @keyframes neonAnim {
+      0%,100% { border-color:#ff00cc; }
+      25%     { border-color:#00ccff; }
+      50%     { border-color:#00ff90; }
+      75%     { border-color:#ffee00; }
+    }
+    .animate-neon {
+      animation: neonAnim 6s linear infinite;
+    }
+  </style>
+</head>
+
+<body class="bg-neutral-900 text-neutral-100 font-sans leading-relaxed selection:bg-neutral-700/60">
+
+  <!-- Top Navigation -->
+  <header class="w-full backdrop-blur supports-backdrop-blur:bg-neutral-800/60 bg-neutral-900/80 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8 py-4 flex items-center justify-between">
+      <a href="#" class="text-lg font-semibold tracking-tight flex items-center space-x-1">
+        <span class="border border-neutral-700 rounded-md px-2 py-0.5">DR</span>
+        <span class="sr-only">Dreamscape</span>
+      </a>
+
+      <nav class="hidden md:flex items-center space-x-8 text-sm">
+        <a href="#features" class="hover:text-white transition-colors">Features</a>
+        <a href="#science" class="hover:text-white transition-colors">Science</a>
+        <a href="#pricing" class="hover:text-white transition-colors">Pricing</a>
+        <a href="#faq" class="hover:text-white transition-colors">FAQ</a>
+      </nav>
+
+      <div class="flex items-center space-x-4">
+        <a href="#" class="hidden sm:inline-block text-xs font-medium px-4 py-2 rounded-md ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all">Log in</a>
+        <a href="#" class="text-xs font-medium px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 transition-colors">Get Started</a>
+
+        <!-- Mobile Menu -->
+        <button id="menuBtn" class="md:hidden p-2 rounded-md ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all">
+          <i data-lucide="menu" class="w-5 h-5 stroke-neutral-200"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Menu Panel -->
+    <div id="mobileMenu" class="hidden md:hidden bg-neutral-900 border-t border-neutral-800">
+      <nav class="flex flex-col px-6 py-4 space-y-3 text-sm">
+        <a href="#features" class="hover:text-white transition-colors">Features</a>
+        <a href="#science" class="hover:text-white transition-colors">Science</a>
+        <a href="#pricing" class="hover:text-white transition-colors">Pricing</a>
+        <a href="#faq" class="hover:text-white transition-colors">FAQ</a>
+        <a href="#" class="text-xs font-medium mt-4 px-4 py-2 rounded-md ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all text-center">Log in</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="relative overflow-hidden" style="background-color: rgb(23 23 23 / 95%);">
+    <!-- Graphic with fluorescent animated border -->
+    <video src="./Generated File August 16, 2025 - 2_18AM.mp4" autoplay loop muted class="absolute inset-0 w-full h-full object-none -z-10"></video>
+
+    <div class="max-w-3xl mx-auto px-6 lg:px-0 py-28 md:py-40 text-center">
+      <h1 class="text-4xl md:text-6xl font-semibold tracking-tight mb-6">Unlock the Language of Dreams</h1>
+      <p class="text-neutral-400 max-w-xl mx-auto mb-10">Explore what your subconscious is trying to tell you. Harness cutting-edge psychology and AI to decode nightly narratives.</p>
+      <a href="#chat" class="inline-flex items-center text-sm font-medium px-6 py-3 rounded-md bg-indigo-600 hover:bg-indigo-500 transition-colors">
+        Start Interpreting
+        <i data-lucide="arrow-right" class="w-4 h-4 stroke-2 ml-2"></i>
+      </a>
+    </div>
+  </section>
+
+  <!-- Chat-like Prompt -->
+  <section id="chat" class="max-w-3xl mx-auto px-6 lg:px-0 mt-20">
+    <h2 class="text-2xl md:text-3xl font-semibold tracking-tight mb-6">Ask About Your Dream</h2>
+
+    <!-- Chat Container -->
+    <div class="space-y-4 mb-6">
+
+
+
+    <!-- Input -->
+    <form class="sticky bottom-6">
+      <div class="flex items-center bg-neutral-800/60 ring-1 ring-neutral-700 rounded-lg px-4 py-3">
+        <input type="text" placeholder="Describe your dream…" class="flex-grow bg-transparent outline-none text-sm placeholder-neutral-500">
+        <button type="submit" class="ml-4 p-2 rounded-md hover:bg-neutral-700/60 transition-colors">
+          <i data-lucide="send" class="w-5 h-5 stroke-neutral-200"></i>
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <!-- Features -->
+  <section id="features" class="max-w-7xl mx-auto px-6 lg:px-8 mt-32">
+    <h2 class="text-2xl md:text-3xl font-semibold tracking-tight text-center mb-14">Built for Deeper Insight</h2>
+    <div class="grid md:grid-cols-3 gap-10">
+
+      <!-- Feature -->
+      <div class="bg-neutral-800/60 p-6 rounded-lg ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all">
+        <div class="mb-4 p-2 rounded-md ring-1 ring-neutral-700 inline-block">
+          <i data-lucide="brain" class="w-5 h-5 stroke-neutral-200"></i>
+        </div>
+        <h3 class="font-medium mb-2">Evidence-Based Analysis</h3>
+        <p class="text-sm text-neutral-400">Grounded in peer-reviewed research from cognitive psychology and dream studies.</p>
+      </div>
+
+      <div class="bg-neutral-800/60 p-6 rounded-lg ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all">
+        <div class="mb-4 p-2 rounded-md ring-1 ring-neutral-700 inline-block">
+          <i data-lucide="wand-2" class="w-5 h-5 stroke-neutral-200"></i>
+        </div>
+        <h3 class="font-medium mb-2">AI-Enhanced Suggestions</h3>
+        <p class="text-sm text-neutral-400">Advanced language models surface the most relevant symbols and themes.</p>
+      </div>
+
+      <div class="bg-neutral-800/60 p-6 rounded-lg ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all">
+        <div class="mb-4 p-2 rounded-md ring-1 ring-neutral-700 inline-block">
+          <i data-lucide="clock" class="w-5 h-5 stroke-neutral-200"></i>
+        </div>
+        <h3 class="font-medium mb-2">Instant Insights</h3>
+        <p class="text-sm text-neutral-400">Receive interpretations in seconds, anytime you wake up with questions.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Science -->
+  <section id="science" class="max-w-5xl mx-auto px-6 lg:px-0 mt-32">
+    <h2 class="text-2xl md:text-3xl font-semibold tracking-tight mb-6">Why Dreams Matter</h2>
+    <p class="text-neutral-400 mb-4">Dreams offer a window into our unconscious motivations, fears, and desires. Modern psychology suggests that nightly narratives help us process emotions, consolidate memories, and simulate future scenarios.</p>
+    <p class="text-neutral-400">By understanding the symbols and emotions present, we gain clarity and unlock personal growth—turning rest into revelation.</p>
+  </section>
+
+  <!-- Pricing -->
+  <section id="pricing" class="max-w-7xl mx-auto px-6 lg:px-8 mt-32">
+    <h2 class="text-2xl md:text-3xl font-semibold tracking-tight text-center mb-14">Simple Pricing</h2>
+
+    <div class="grid md:grid-cols-3 gap-8">
+
+      <!-- Tier -->
+      <div class="flex flex-col bg-neutral-800/60 rounded-lg ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all p-8">
+        <h3 class="font-medium mb-1">Free</h3>
+        <p class="text-neutral-400 text-sm mb-6">Great for casual explorers</p>
+        <p class="text-3xl font-semibold mb-6">0<span class="text-base font-medium">/mo</span></p>
+        <ul class="space-y-3 text-sm flex-1">
+          <li class="flex items-center space-x-2"><i data-lucide="check" class="w-4 h-4 stroke-neutral-200"></i><span>3 interpretations / week</span></li>
+          <li class="flex items-center space-x-2"><i data-lucide="check" class="w-4 h-4 stroke-neutral-200"></i><span>Basic symbol lookup</span></li>
+        </ul>
+        <a href="#" class="mt-8 text-sm font-medium text-center px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 transition-colors">Get Started</a>
+      </div>
+
+      <div class="flex flex-col bg-neutral-800/60 rounded-lg ring-1 ring-indigo-600 hover:ring-indigo-400 transition-all p-8">
+        <h3 class="font-medium mb-1">Pro</h3>
+        <p class="text-neutral-400 text-sm mb-6">For avid dreamers</p>
+        <p class="text-3xl font-semibold mb-6">$9<span class="text-base font-medium">/mo</span></p>
+        <ul class="space-y-3 text-sm flex-1">
+          <li class="flex items-center space-x-2"><i data-lucide="check" class="w-4 h-4 stroke-neutral-200"></i><span>Unlimited interpretations</span></li>
+          <li class="flex items-center space-x-2"><i data-lucide="check" class="w-4 h-4 stroke-neutral-200"></i><span>Personal insights diary</span></li>
+          <li class="flex items-center space-x-2"><i data-lucide="check" class="w-4 h-4 stroke-neutral-200"></i><span>Email summaries</span></li>
+        </ul>
+        <a href="#" class="mt-8 text-sm font-medium text-center px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 transition-colors">Upgrade</a>
+      </div>
+
+      <div class="flex flex-col bg-neutral-800/60 rounded-lg ring-1 ring-neutral-700 hover:ring-neutral-500 transition-all p-8">
+        <h3 class="font-medium mb-1">Studio</h3>
+        <p class="text-neutral-400 text-sm mb-6">For therapists &amp; researchers</p>
+        <p class="text-3xl font-semibold mb-6">$29<span class="text-base font-medium">/mo</span></p>
+        <ul class="space-y-3 text-sm flex-1">
+          <li class="flex items-center space-x-2"><i data-lucide="check" class="w-4 h-4 stroke-neutral-200"></i><span>Session reports</span></li>
+          <li class="flex items-center space-x-2"><i data-lucide="check" class="w-4 h-4 stroke-neutral-200"></i><span>Collaboration tools</span></li>
+          <li class="flex items-center space-x-2"><i data-lucide="check" class="w-4 h-4 stroke-neutral-200"></i><span>Early access to beta features</span></li>
+        </ul>
+        <a href="#" class="mt-8 text-sm font-medium text-center px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 transition-colors">Contact Sales</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq" class="max-w-5xl mx-auto px-6 lg:px-0 mt-32 mb-40">
+    <h2 class="text-2xl md:text-3xl font-semibold tracking-tight mb-6">Frequently Asked Questions</h2>
+    <div class="space-y-8">
+
+      <details class="group ring-1 ring-neutral-700 rounded-lg p-6 hover:ring-neutral-500 transition-all">
+        <summary class="cursor-pointer flex items-center justify-between text-sm font-medium text-neutral-200">
+          How accurate are the interpretations?
+          <i data-lucide="chevron-down" class="w-4 h-4 stroke-neutral-400 group-open:rotate-180 transition-transform"></i>
+        </summary>
+        <p class="mt-4 text-sm text-neutral-400">Interpretations are generated using empirical research and machine-learning insights, but personal context always matters. Use results as guidance rather than absolute truths.</p>
+      </details>
+
+      <details class="group ring-1 ring-neutral-700 rounded-lg p-6 hover:ring-neutral-500 transition-all">
+        <summary class="cursor-pointer flex items-center justify-between text-sm font-medium text-neutral-200">
+          Can I share my insights with a therapist?
+          <i data-lucide="chevron-down" class="w-4 h-4 stroke-neutral-400 group-open:rotate-180 transition-transform"></i>
+        </summary>
+        <p class="mt-4 text-sm text-neutral-400">Yes, you can export any dream session as a PDF or secure link to share with your therapist or support group.</p>
+      </details>
+
+      <details class="group ring-1 ring-neutral-700 rounded-lg p-6 hover:ring-neutral-500 transition-all">
+        <summary class="cursor-pointer flex items-center justify-between text-sm font-medium text-neutral-200">
+          Is my data private?
+          <i data-lucide="chevron-down" class="w-4 h-4 stroke-neutral-400 group-open:rotate-180 transition-transform"></i>
+        </summary>
+        <p class="mt-4 text-sm text-neutral-400">We employ end-to-end encryption and never sell personal data. You control deletion at any time.</p>
+      </details>
+
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-neutral-800 py-10 text-sm">
+    <div class="max-w-7xl mx-auto px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center space-y-6 md:space-y-0">
+      <p class="text-neutral-500">© 2024 Dreamscape. All rights reserved.</p>
+      <div class="flex items-center space-x-6">
+        <a href="#" class="hover:text-neutral-300 transition-colors">Terms</a>
+        <a href="#" class="hover:text-neutral-300 transition-colors">Privacy</a>
+        <a href="#" class="hover:text-neutral-300 transition-colors">Contact</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script>
+    lucide.createIcons({ strokeWidth: 1.5 });
+
+    // Mobile menu toggle
+    const btn = document.getElementById('menuBtn');
+    const menu = document.getElementById('mobileMenu');
+    btn?.addEventListener('click', () => {
+      menu.classList.toggle('hidden');
+    });
+  </script>
+
+</body></html>

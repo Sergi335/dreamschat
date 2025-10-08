@@ -24,7 +24,7 @@ export const useConversations = (): UseConversationsReturn => {
   const { user, isLoaded } = useUser()
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
 
   // Cargar conversaciones del servidor
