@@ -16,7 +16,7 @@ export default function useChatMessages () {
   const guestPromptProcessedRef = useRef(false)
 
   // DEBUG: Log siempre para verificar que el hook se ejecuta
-  console.log('🔧 useChatMessages - user:', user, 'isLoaded:', isLoaded, 'searchParams:', searchParams?.toString())
+  // console.log('🔧 useChatMessages - user:', user, 'isLoaded:', isLoaded, 'searchParams:', searchParams?.toString())
   const {
     conversations,
     activeConversationId,
@@ -62,7 +62,7 @@ export default function useChatMessages () {
 
     return null
   }, [conversations, activeConversationId])
-  console.log('🚀 ~ useChatMessages ~ activeConversation:', activeConversation)
+  // console.log('🚀 ~ useChatMessages ~ activeConversation:', activeConversation)
 
   const relevantOptimisticMessages = useMemo(() =>
     state.optimisticMessages.filter(
@@ -99,7 +99,7 @@ export default function useChatMessages () {
   useEffect(() => {
     const promptFromUrl = searchParams?.get('prompt')
 
-    console.log('🎮 MASTER useEffect - isLoaded:', isLoaded, 'user:', !!user, 'prompt:', promptFromUrl, 'activeConvId:', activeConversationId)
+    // console.log('🎮 MASTER useEffect - isLoaded:', isLoaded, 'user:', !!user, 'prompt:', promptFromUrl, 'activeConvId:', activeConversationId)
 
     // Solo proceder cuando Clerk ha cargado
     if (!isLoaded) return
