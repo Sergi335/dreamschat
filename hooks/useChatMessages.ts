@@ -182,11 +182,17 @@ export default function useChatMessages () {
 
     // Validar límites de invitado ANTES de procesar
     if (isGuest) {
+      // Esperar a que la sesión se cargue antes de validar
+      if (guestSession.loading) {
+        console.log('⏳ Waiting for guest session to load...')
+        return
+      }
+
       if (!guestSession.canSendMessage) {
         toast({
           title: 'Límite alcanzado',
           description: 'Has alcanzado el límite de 3 mensajes. Regístrate para continuar.',
-          variant: 'destructive',
+          variant: 'destructive'
         })
         return
       }

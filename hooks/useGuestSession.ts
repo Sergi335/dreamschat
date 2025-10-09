@@ -43,14 +43,21 @@ export function useGuestSession () {
   }, [])
 
   const incrementConversation = useCallback(async () => {
-    if (!session) return
-
     try {
+      // Si no hay sesión, cargarla primero
+      if (!session) {
+        await loadSession()
+        // Después de cargar, necesitamos esperar a que el estado se actualice
+        // pero como esto es asíncrono, vamos a obtener el fingerprint directamente
+      }
+
+      const fingerprint = session?.fingerprint || await getFingerprint()
+
       const response = await fetch('/api/guest/increment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fingerprint: session.fingerprint,
+          fingerprint,
           type: 'conversation'
         })
       })
@@ -65,17 +72,22 @@ export function useGuestSession () {
       console.error('Error incrementing conversation:', err)
       setError(err instanceof Error ? err.message : 'Unknown error')
     }
-  }, [session])
+  }, [session, loadSession])
 
   const incrementMessage = useCallback(async () => {
-    if (!session) return
-
     try {
+      // Si no hay sesión, cargarla primero
+      if (!session) {
+        await loadSession()
+      }
+
+      const fingerprint = session?.fingerprint || await getFingerprint()
+
       const response = await fetch('/api/guest/increment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fingerprint: session.fingerprint,
+          fingerprint,
           type: 'message'
         })
       })
@@ -90,7 +102,7 @@ export function useGuestSession () {
       console.error('Error incrementing message:', err)
       setError(err instanceof Error ? err.message : 'Unknown error')
     }
-  }, [session])
+  }, [session, loadSession])
 
   const reloadSession = useCallback(() => {
     return loadSession()
