@@ -3,6 +3,8 @@ import {
   PromptInputSubmit,
   PromptInputTextarea
 } from '@/components/ai-elements/prompt-input'
+import { GuestMessageCounter } from '@/components/guest-message-counter'
+import { useUser } from '@clerk/nextjs'
 
 export default function ChatInput ({
   input,
@@ -19,8 +21,16 @@ export default function ChatInput ({
     handleStopTyping: () => void
     submitStatus: 'submitted' | 'streaming' | 'error' | undefined
 }) {
+  const { user } = useUser()
+  const isGuest = !user
+
   return (
     <div className="max-w-4xl mx-auto">
+      {isGuest && (
+        <div className="mb-3 flex justify-end">
+          <GuestMessageCounter />
+        </div>
+      )}
       <PromptInput onSubmit={e => {
         e.preventDefault()
         handleSendMessage()
