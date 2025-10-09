@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { getFingerprint } from '@/lib/fingerprint'
 
 interface GuestSession {
@@ -14,34 +14,51 @@ export function useGuestSession () {
   const [session, setSession] = useState<GuestSession | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const loadingRef = useRef(false)
+  const loadPromiseRef = useRef<Promise<GuestSession> | null>(null)
 
   const loadSession = useCallback(async () => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      const fingerprint = await getFingerprint()
-
-      const response = await fetch('/api/guest/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fingerprint })
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to load session')
-      }
-
-      const data = await response.json()
-      setSession(data)
-      return data // Return the session data for immediate use
-    } catch (err) {
-      console.error('Error loading guest session:', err)
-      setError(err instanceof Error ? err.message : 'Unknown error')
-      throw err // Re-throw to let callers know it failed
-    } finally {
-      setLoading(false)
+    // Si ya estamos cargando, devolver la promesa existente
+    if (loadingRef.current && loadPromiseRef.current) {
+      return loadPromiseRef.current
     }
+
+    // Marcar que estamos cargando
+    loadingRef.current = true
+
+    const promise = (async () => {
+      try {
+        setLoading(true)
+        setError(null)
+
+        const fingerprint = await getFingerprint()
+
+        const response = await fetch('/api/guest/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fingerprint })
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to load session')
+        }
+
+        const data = await response.json()
+        setSession(data)
+        return data // Return the session data for immediate use
+      } catch (err) {
+        console.error('Error loading guest session:', err)
+        setError(err instanceof Error ? err.message : 'Unknown error')
+        throw err // Re-throw to let callers know it failed
+      } finally {
+        setLoading(false)
+        loadingRef.current = false
+        loadPromiseRef.current = null
+      }
+    })()
+
+    loadPromiseRef.current = promise
+    return promise
   }, [])
 
   const incrementConversation = useCallback(async () => {
@@ -115,8 +132,25 @@ export function useGuestSession () {
   }, [loadSession])
 
   useEffect(() => {
-    loadSession()
-  }, [loadSession])
+    // Solo cargar una vez al montar
+    let mounted = true
+    
+    const init = async () => {
+      if (mounted) {
+        try {
+          await loadSession()
+        } catch (err) {
+          // Error ya manejado en loadSession
+        }
+      }
+    }
+    
+    init()
+    
+    return () => {
+      mounted = false
+    }
+  }, []) // Dependencias vacías para ejecutar solo una vez
 
   return {
     session,
