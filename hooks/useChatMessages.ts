@@ -248,7 +248,15 @@ export default function useChatMessages () {
         console.log('📝 Added assistant message, total messages:', finalMessages.length)
 
         // Incrementar contador de mensajes para invitados
-        await guestSession.incrementMessage()
+        try {
+          await guestSession.incrementMessage()
+        } catch (error) {
+          console.error('Error incrementing message counter:', error)
+          // Mostrar error al usuario
+          updateState({
+            error: 'No se pudo actualizar el contador de mensajes'
+          })
+        }
 
         return // Salir temprano para guest users
       }

@@ -34,9 +34,11 @@ export function useGuestSession () {
 
       const data = await response.json()
       setSession(data)
+      return data // Return the session data for immediate use
     } catch (err) {
       console.error('Error loading guest session:', err)
       setError(err instanceof Error ? err.message : 'Unknown error')
+      throw err // Re-throw to let callers know it failed
     } finally {
       setLoading(false)
     }
@@ -44,14 +46,13 @@ export function useGuestSession () {
 
   const incrementConversation = useCallback(async () => {
     try {
-      // Si no hay sesión, cargarla primero
-      if (!session) {
-        await loadSession()
-        // Después de cargar, necesitamos esperar a que el estado se actualice
-        // pero como esto es asíncrono, vamos a obtener el fingerprint directamente
+      // Obtener el fingerprint de la sesión actual o cargar una nueva
+      let fingerprint = session?.fingerprint
+      
+      if (!fingerprint) {
+        const loadedSession = await loadSession()
+        fingerprint = loadedSession.fingerprint
       }
-
-      const fingerprint = session?.fingerprint || await getFingerprint()
 
       const response = await fetch('/api/guest/increment', {
         method: 'POST',
@@ -63,7 +64,8 @@ export function useGuestSession () {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to increment conversation')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to increment conversation')
       }
 
       const data = await response.json()
@@ -71,17 +73,19 @@ export function useGuestSession () {
     } catch (err) {
       console.error('Error incrementing conversation:', err)
       setError(err instanceof Error ? err.message : 'Unknown error')
+      throw err // Re-throw to let caller handle it
     }
   }, [session, loadSession])
 
   const incrementMessage = useCallback(async () => {
     try {
-      // Si no hay sesión, cargarla primero
-      if (!session) {
-        await loadSession()
+      // Obtener el fingerprint de la sesión actual o cargar una nueva
+      let fingerprint = session?.fingerprint
+      
+      if (!fingerprint) {
+        const loadedSession = await loadSession()
+        fingerprint = loadedSession.fingerprint
       }
-
-      const fingerprint = session?.fingerprint || await getFingerprint()
 
       const response = await fetch('/api/guest/increment', {
         method: 'POST',
@@ -93,7 +97,8 @@ export function useGuestSession () {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to increment message')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to increment message')
       }
 
       const data = await response.json()
@@ -101,6 +106,7 @@ export function useGuestSession () {
     } catch (err) {
       console.error('Error incrementing message:', err)
       setError(err instanceof Error ? err.message : 'Unknown error')
+      throw err // Re-throw to let caller handle it
     }
   }, [session, loadSession])
 
