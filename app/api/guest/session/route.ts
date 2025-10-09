@@ -12,18 +12,14 @@ export async function POST (request: NextRequest) {
       )
     }
 
-    // Buscar sesión existente
+    // Buscar sesión existente primero
     const { data: existingSession, error: fetchError } = await supabase
       .from('guest_sessions')
       .select('*')
       .eq('fingerprint', fingerprint)
       .single()
 
-    if (fetchError && fetchError.code !== 'PGRST116') {
-      throw fetchError
-    }
-
-    // Si existe, retornar sesión
+    // Si encontramos una sesión, retornarla
     if (existingSession) {
       return NextResponse.json({
         fingerprint: existingSession.fingerprint,
@@ -35,7 +31,12 @@ export async function POST (request: NextRequest) {
       })
     }
 
-    // Si no existe, crear nueva sesión
+    // Si no existe (error PGRST116 significa "no encontrado"), intentar crear
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      throw fetchError
+    }
+
+    // Intentar crear nueva sesión
     const { data: newSession, error: insertError } = await supabase
       .from('guest_sessions')
       .insert({
@@ -45,6 +46,27 @@ export async function POST (request: NextRequest) {
       })
       .select()
       .single()
+
+    // Si la inserción falló por duplicado, intentar obtener la sesión de nuevo
+    // (esto puede pasar si dos requests simultáneas pasaron el check de existencia)
+    if (insertError && insertError.code === '23505') {
+      const { data: existingAfterRace, error: reFetchError } = await supabase
+        .from('guest_sessions')
+        .select('*')
+        .eq('fingerprint', fingerprint)
+        .single()
+
+      if (reFetchError) throw reFetchError
+
+      return NextResponse.json({
+        fingerprint: existingAfterRace.fingerprint,
+        conversationCount: existingAfterRace.conversation_count,
+        messageCount: existingAfterRace.message_count,
+        canCreateConversation: existingAfterRace.conversation_count < 1,
+        canSendMessage: existingAfterRace.message_count < 3,
+        lastActivity: existingAfterRace.last_activity
+      })
+    }
 
     if (insertError) throw insertError
 
