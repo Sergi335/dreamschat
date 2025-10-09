@@ -92,6 +92,17 @@ vi.mock('@/lib/supabase', () => ({
 // Mock global de fetch
 global.fetch = vi.fn()
 
+// Mock de FingerprintJS
+vi.mock('@fingerprintjs/fingerprintjs', () => ({
+  default: {
+    load: vi.fn().mockResolvedValue({
+      get: vi.fn().mockResolvedValue({
+        visitorId: 'test-fingerprint-123456789'
+      })
+    })
+  }
+}))
+
 // Setup para limpiar mocks después de cada test
 afterEach(() => {
   vi.clearAllMocks()
