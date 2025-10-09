@@ -1,49 +1,49 @@
-import { useState, useEffect, useCallback } from 'react';
-import { getFingerprint } from '@/lib/fingerprint';
+import { useState, useEffect, useCallback } from 'react'
+import { getFingerprint } from '@/lib/fingerprint'
 
 interface GuestSession {
-  fingerprint: string;
-  conversationCount: number;
-  messageCount: number;
-  canCreateConversation: boolean;
-  canSendMessage: boolean;
-  lastActivity: string;
+  fingerprint: string
+  conversationCount: number
+  messageCount: number
+  canCreateConversation: boolean
+  canSendMessage: boolean
+  lastActivity: string
 }
 
-export function useGuestSession() {
-  const [session, setSession] = useState<GuestSession | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+export function useGuestSession () {
+  const [session, setSession] = useState<GuestSession | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const loadSession = useCallback(async () => {
     try {
-      setLoading(true);
-      setError(null);
+      setLoading(true)
+      setError(null)
 
-      const fingerprint = await getFingerprint();
+      const fingerprint = await getFingerprint()
 
       const response = await fetch('/api/guest/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fingerprint }),
-      });
+        body: JSON.stringify({ fingerprint })
+      })
 
       if (!response.ok) {
-        throw new Error('Failed to load session');
+        throw new Error('Failed to load session')
       }
 
-      const data = await response.json();
-      setSession(data);
+      const data = await response.json()
+      setSession(data)
     } catch (err) {
-      console.error('Error loading guest session:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      console.error('Error loading guest session:', err)
+      setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, []);
+  }, [])
 
   const incrementConversation = useCallback(async () => {
-    if (!session) return;
+    if (!session) return
 
     try {
       const response = await fetch('/api/guest/increment', {
@@ -51,24 +51,24 @@ export function useGuestSession() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fingerprint: session.fingerprint,
-          type: 'conversation',
-        }),
-      });
+          type: 'conversation'
+        })
+      })
 
       if (!response.ok) {
-        throw new Error('Failed to increment conversation');
+        throw new Error('Failed to increment conversation')
       }
 
-      const data = await response.json();
-      setSession(data);
+      const data = await response.json()
+      setSession(data)
     } catch (err) {
-      console.error('Error incrementing conversation:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      console.error('Error incrementing conversation:', err)
+      setError(err instanceof Error ? err.message : 'Unknown error')
     }
-  }, [session]);
+  }, [session])
 
   const incrementMessage = useCallback(async () => {
-    if (!session) return;
+    if (!session) return
 
     try {
       const response = await fetch('/api/guest/increment', {
@@ -76,29 +76,29 @@ export function useGuestSession() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fingerprint: session.fingerprint,
-          type: 'message',
-        }),
-      });
+          type: 'message'
+        })
+      })
 
       if (!response.ok) {
-        throw new Error('Failed to increment message');
+        throw new Error('Failed to increment message')
       }
 
-      const data = await response.json();
-      setSession(data);
+      const data = await response.json()
+      setSession(data)
     } catch (err) {
-      console.error('Error incrementing message:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      console.error('Error incrementing message:', err)
+      setError(err instanceof Error ? err.message : 'Unknown error')
     }
-  }, [session]);
+  }, [session])
 
   const reloadSession = useCallback(() => {
-    return loadSession();
-  }, [loadSession]);
+    return loadSession()
+  }, [loadSession])
 
   useEffect(() => {
-    loadSession();
-  }, [loadSession]);
+    loadSession()
+  }, [loadSession])
 
   return {
     session,
@@ -108,6 +108,6 @@ export function useGuestSession() {
     canSendMessage: session?.canSendMessage ?? false,
     incrementConversation,
     incrementMessage,
-    reloadSession,
-  };
+    reloadSession
+  }
 }

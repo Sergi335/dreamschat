@@ -1,21 +1,21 @@
-import FingerprintJS from '@fingerprintjs/fingerprintjs';
+import FingerprintJS from '@fingerprintjs/fingerprintjs'
 
-let fpPromise: Promise<FingerprintJS.Agent> | null = null;
+let fpPromise: Promise<FingerprintJS.Agent> | null = null
 
-export async function loadFingerprint() {
+export async function loadFingerprint () {
   if (!fpPromise) {
-    fpPromise = FingerprintJS.load();
+    fpPromise = FingerprintJS.load()
   }
-  return fpPromise;
+  return fpPromise
 }
 
-export async function getFingerprint(): Promise<string> {
+export async function getFingerprint (): Promise<string> {
   try {
-    const fp = await loadFingerprint();
-    const result = await fp.get();
-    return result.visitorId;
+    const fp = await loadFingerprint()
+    const result = await fp.get()
+    return result.visitorId
   } catch (error) {
-    console.error('Error generating fingerprint:', error);
-    throw new Error('Failed to generate device fingerprint');
+    console.error('Error generating fingerprint:', error)
+    throw new Error('Failed to generate device fingerprint')
   }
 }

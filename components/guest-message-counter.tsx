@@ -1,23 +1,23 @@
-'use client';
+'use client'
 
-import { useGuestSession } from '@/hooks/useGuestSession';
-import { Badge } from '@/components/ui/badge';
-import { MessageSquare } from 'lucide-react';
+import { useGuestSession } from '@/hooks/useGuestSession'
+import { Badge } from '@/components/ui/badge'
+import { MessageSquare } from 'lucide-react'
 
-export function GuestMessageCounter() {
-  const { session, loading } = useGuestSession();
+export function GuestMessageCounter () {
+  const { session, loading } = useGuestSession()
 
   if (loading || !session) {
-    return null;
+    return null
   }
 
-  const { messageCount } = session;
-  const isAtLimit = messageCount >= 3;
-  const isNearLimit = messageCount === 2;
+  const { messageCount } = session
+  const isAtLimit = messageCount >= 3
+  const isNearLimit = messageCount === 2
 
   return (
     <div className="flex items-center gap-2 text-sm">
-      <Badge 
+      <Badge
         variant={isAtLimit ? 'destructive' : isNearLimit ? 'secondary' : 'outline'}
         className="flex items-center gap-1"
       >
@@ -32,5 +32,5 @@ export function GuestMessageCounter() {
         </span>
       )}
     </div>
-  );
+  )
 }

@@ -1,15 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { NextRequest, NextResponse } from 'next/server'
+import { supabase } from '@/lib/supabase'
 
-export async function POST(request: NextRequest) {
+export async function POST (request: NextRequest) {
   try {
-    const { fingerprint } = await request.json();
+    const { fingerprint } = await request.json()
 
     if (!fingerprint) {
       return NextResponse.json(
         { error: 'Fingerprint is required' },
         { status: 400 }
-      );
+      )
     }
 
     // Buscar sesión existente
@@ -17,10 +17,10 @@ export async function POST(request: NextRequest) {
       .from('guest_sessions')
       .select('*')
       .eq('fingerprint', fingerprint)
-      .single();
+      .single()
 
     if (fetchError && fetchError.code !== 'PGRST116') {
-      throw fetchError;
+      throw fetchError
     }
 
     // Si existe, retornar sesión
@@ -31,8 +31,8 @@ export async function POST(request: NextRequest) {
         messageCount: existingSession.message_count,
         canCreateConversation: existingSession.conversation_count < 1,
         canSendMessage: existingSession.message_count < 3,
-        lastActivity: existingSession.last_activity,
-      });
+        lastActivity: existingSession.last_activity
+      })
     }
 
     // Si no existe, crear nueva sesión
@@ -41,12 +41,12 @@ export async function POST(request: NextRequest) {
       .insert({
         fingerprint,
         conversation_count: 0,
-        message_count: 0,
+        message_count: 0
       })
       .select()
-      .single();
+      .single()
 
-    if (insertError) throw insertError;
+    if (insertError) throw insertError
 
     return NextResponse.json({
       fingerprint: newSession.fingerprint,
@@ -54,13 +54,13 @@ export async function POST(request: NextRequest) {
       messageCount: 0,
       canCreateConversation: true,
       canSendMessage: true,
-      lastActivity: newSession.last_activity,
-    });
+      lastActivity: newSession.last_activity
+    })
   } catch (error) {
-    console.error('Error in /api/guest/session:', error);
+    console.error('Error in /api/guest/session:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
-    );
+    )
   }
 }
