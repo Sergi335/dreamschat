@@ -9,11 +9,15 @@ import { useMessageMerging } from './useMessageMerging'
 import { useMessageUtils } from './useMessageUtils'
 import { useScrollManager } from './useScrollManager'
 import { useTypingEffect } from './useTypingEffect'
+import { useGuestSession } from './useGuestSession'
+import { toast } from './useToast'
 
 export default function useChatMessages () {
   const { user, isLoaded } = useUser()
   const searchParams = useSearchParams()
   const guestPromptProcessedRef = useRef(false)
+  const isGuest = !user
+  const guestSession = useGuestSession()
 
   // DEBUG: Log siempre para verificar que el hook se ejecuta
   console.log('🔧 useChatMessages - user:', user, 'isLoaded:', isLoaded, 'searchParams:', searchParams?.toString())
@@ -153,13 +157,40 @@ export default function useChatMessages () {
 
   // Función para iniciar nuevo chat
   const startNewChat = useCallback(() => {
+    // Validar límites de invitado
+    if (isGuest && !guestSession.canCreateConversation) {
+      toast({
+        title: 'Límite alcanzado',
+        description: 'Ya tienes una conversación activa. Regístrate para crear más.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     resetToInitialChat()
     setActiveConversationId(null)
-  }, [resetToInitialChat, setActiveConversationId])
+
+    // Incrementar contador de conversaciones para invitados
+    if (isGuest) {
+      guestSession.incrementConversation()
+    }
+  }, [resetToInitialChat, setActiveConversationId, isGuest, guestSession])
 
   // Función principal para enviar mensaje
   const handleSendMessage = useCallback(async () => {
     if (!state.input.trim() || state.isTyping) return
+
+    // Validar límites de invitado ANTES de procesar
+    if (isGuest) {
+      if (!guestSession.canSendMessage) {
+        toast({
+          title: 'Límite alcanzado',
+          description: 'Has alcanzado el límite de 3 mensajes. Regístrate para continuar.',
+          variant: 'destructive',
+        })
+        return
+      }
+    }
 
     try {
       let conversationId = activeConversationId
@@ -209,6 +240,9 @@ export default function useChatMessages () {
           isTyping: false
         })
         console.log('📝 Added assistant message, total messages:', finalMessages.length)
+
+        // Incrementar contador de mensajes para invitados
+        await guestSession.incrementMessage()
 
         return // Salir temprano para guest users
       }
@@ -320,7 +354,9 @@ export default function useChatMessages () {
     addMessage,
     updateConversationTitle,
     generateTitle,
-    conversations
+    conversations,
+    isGuest,
+    guestSession
   ])
 
   const handleStopTyping = useCallback(() => {
