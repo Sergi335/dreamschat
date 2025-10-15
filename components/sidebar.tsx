@@ -11,6 +11,7 @@ import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import React, { forwardRef, useCallback } from 'react'
+import { Badge } from './ui/badge'
 
 interface SidebarProps {
   setError: (error: string) => void;
@@ -119,25 +120,44 @@ export const Sidebar = forwardRef<HTMLInputElement, SidebarProps>(
                   <Button
                     onClick={handleNewConversation}
                     className="w-full bg-transparent text-gray-400 justify-start"
-                    disabled={isLoading}
+                    disabled={isLoading || !user}
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     {t('newConversation')}
+                    {
+                      !user && <Badge variant={'destructive'} className="ml-2">Pro</Badge>
+                    }
                   </Button>
                   <Button
                     className="w-full bg-transparent text-gray-400 justify-start"
-                    disabled={isLoading}
+                    disabled={isLoading || !user}
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Buscar
+                    {
+                      !user && <Badge variant={'destructive'} className="ml-2">Pro</Badge>
+                    }
                   </Button>
-                  <Link
-                    className="inline-flex items-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-primary/90 hover:text-white h-10 px-4 py-2 w-full bg-transparent text-gray-400 justify-start"
-                    href={`/${locale}/calendar`}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    {user ? 'calendario' : 'calendario - pro'}
-                  </Link>
+                  {
+                    user
+                      ? (
+                        <Link
+                          className="inline-flex items-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-primary/90 hover:text-white h-10 px-4 py-2 w-full bg-transparent text-gray-400 justify-start"
+                          href={`/${locale}/calendar`}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Calendario
+                        </Link>
+                      )
+                      : (
+                        <Button disabled={true} className="w-full bg-transparent text-gray-400 justify-start">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Calendario
+                          <Badge variant={'destructive'} className="ml-2">Pro</Badge>
+                        </Button>
+                      )
+                  }
+
                 </>
               )}
           </div>
