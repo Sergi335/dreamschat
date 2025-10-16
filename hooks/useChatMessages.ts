@@ -3,7 +3,9 @@ import { useConversations } from '@/context/conversations-context'
 import { useUser } from '@clerk/nextjs'
 import { useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { toast } from 'sonner'
 import { useChatState } from './useChatState'
+import { useGuestSession } from './useGuestSession'
 import { useLLMApi } from './useLLMApi'
 import { useMessageMerging } from './useMessageMerging'
 import { useMessageUtils } from './useMessageUtils'
@@ -14,6 +16,9 @@ export default function useChatMessages () {
   const { user, isLoaded } = useUser()
   const searchParams = useSearchParams()
   const guestPromptProcessedRef = useRef(false)
+  const guestSession = useGuestSession()
+  const isGuest = !user && isLoaded
+  const hasShownToastRef = useRef(false)
 
   // DEBUG: Log siempre para verificar que el hook se ejecuta
   // console.log('🔧 useChatMessages - user:', user, 'isLoaded:', isLoaded, 'searchParams:', searchParams?.toString())
@@ -160,6 +165,16 @@ export default function useChatMessages () {
   // Función principal para enviar mensaje
   const handleSendMessage = useCallback(async () => {
     if (!state.input.trim() || state.isTyping) return
+    // Validar límites de invitado
+    if (isGuest) {
+      if (!guestSession.canSendMessage) {
+        if (!hasShownToastRef.current) {
+          toast('💡 Límite de mensajes alcanzado. Regístrate para más.', { duration: 6000 })
+          hasShownToastRef.current = true
+        }
+        return
+      }
+    }
 
     try {
       let conversationId = activeConversationId
@@ -209,17 +224,24 @@ export default function useChatMessages () {
           isTyping: false
         })
         console.log('📝 Added assistant message, total messages:', finalMessages.length)
-
+        await guestSession.incrementMessage()
         return // Salir temprano para guest users
       }
 
       // Para usuarios autenticados: lógica original
       if (state.isInitialChat) {
+        if (isGuest && !guestSession.canCreateConversation && !hasShownToastRef.current) {
+          toast('💡 Límite de conversaciones alcanzado. Regístrate para más.', { duration: 6000 })
+          hasShownToastRef.current = true
+          return
+        }
+        if (isGuest) {
+          await guestSession.incrementConversation()
+        }
         conversationId = await createConversation('Nueva conversación')
         setActiveConversationId(conversationId)
         updateState({ isInitialChat: false })
       }
-
       if (!conversationId || !activeConversation) {
         throw new Error('No se pudo crear o encontrar la conversación')
       }
@@ -295,6 +317,9 @@ export default function useChatMessages () {
       if (isFirstMessage) {
         await updateConversationTitle(conversationId, generateTitle(userMessage.content))
       }
+      if (isGuest) {
+        await guestSession.incrementMessage()
+      }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Error al enviar mensaje'
       updateState({
@@ -320,7 +345,8 @@ export default function useChatMessages () {
     addMessage,
     updateConversationTitle,
     generateTitle,
-    conversations
+    conversations,
+    isGuest, guestSession
   ])
 
   const handleStopTyping = useCallback(() => {

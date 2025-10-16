@@ -1,6 +1,7 @@
 'use client'
 import DashboardHeader from '@/components/dashboard-header'
 import { Sidebar } from '@/components/sidebar'
+import { Toaster } from '@/components/ui/sonner'
 import { useConversations } from '@/context/conversations-context'
 import useChatMessages from '@/hooks/useChatMessages'
 import useLLMConfig from '@/hooks/useLLMConfig'
@@ -32,6 +33,7 @@ export default function DashboardContent ({
         />
         {children}
       </main>
+      <Toaster position="top-right" richColors />
     </div>
   )
 }
