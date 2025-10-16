@@ -1,4 +1,5 @@
 import { getFingerprint } from '@/lib/fingerprint'
+import { useUser } from '@clerk/nextjs'
 import { useCallback, useEffect, useState } from 'react'
 
 interface GuestSession {
@@ -14,6 +15,7 @@ export function useGuestSession () {
   const [session, setSession] = useState<GuestSession | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { user, isLoaded } = useUser()
 
   const loadSession = useCallback(async () => {
     try {
@@ -96,9 +98,20 @@ export function useGuestSession () {
     return loadSession()
   }, [loadSession])
 
+  //   useEffect(() => {
+  //     loadSession()
+  //   }, [loadSession])
+
   useEffect(() => {
+    if (!isLoaded) return
+    if (user) {
+      setLoading(false)
+      setSession(null)
+      setError(null)
+      return
+    }
     loadSession()
-  }, [loadSession])
+  }, [isLoaded, user, loadSession])
 
   return {
     session,

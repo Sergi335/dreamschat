@@ -2,7 +2,7 @@
 import { Message } from '@/types/message.types'
 import { useCallback, useRef, useState } from 'react'
 
-interface ChatState {
+export interface ChatState {
   input: string
   isTyping: boolean
   typingMessage: string
