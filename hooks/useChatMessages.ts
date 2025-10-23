@@ -1,4 +1,3 @@
-// hooks/useChatMessages.ts - Hook principal refactorizado
 import { useConversations } from '@/context/conversations-context'
 import { useUser } from '@clerk/nextjs'
 import { useSearchParams } from 'next/navigation'
@@ -20,8 +19,6 @@ export default function useChatMessages () {
   const isGuest = !user && isLoaded
   const hasShownToastRef = useRef(false)
 
-  // DEBUG: Log siempre para verificar que el hook se ejecuta
-  // console.log('🔧 useChatMessages - user:', user, 'isLoaded:', isLoaded, 'searchParams:', searchParams?.toString())
   const {
     conversations,
     activeConversationId,
@@ -67,7 +64,6 @@ export default function useChatMessages () {
 
     return null
   }, [conversations, activeConversationId])
-  // console.log('🚀 ~ useChatMessages ~ activeConversation:', activeConversation)
 
   const relevantOptimisticMessages = useMemo(() =>
     state.optimisticMessages.filter(
@@ -103,8 +99,6 @@ export default function useChatMessages () {
   // MASTER useEffect para gestión de guest users
   useEffect(() => {
     const promptFromUrl = searchParams?.get('prompt')
-
-    // console.log('🎮 MASTER useEffect - isLoaded:', isLoaded, 'user:', !!user, 'prompt:', promptFromUrl, 'activeConvId:', activeConversationId)
 
     // Solo proceder cuando Clerk ha cargado
     if (!isLoaded) return
@@ -181,12 +175,10 @@ export default function useChatMessages () {
 
       // Para usuarios guest (no autenticados)
       if (!user) {
-        console.log('💭 Guest mode: sending message without saving to DB')
         conversationId = 'guest-session'
 
         // Crear mensaje optimista del usuario
         const userMessage = createOptimisticMessage(state.input.trim(), 'user', 'guest-user', conversationId)
-        console.log('👤 Created guest user message:', userMessage)
 
         // Actualizar estado con mensaje de usuario incluido
         const messagesWithUser = [...state.optimisticMessages, userMessage]
@@ -198,7 +190,6 @@ export default function useChatMessages () {
           error: '',
           isInitialChat: false
         })
-        console.log('📝 Added user message, total messages:', messagesWithUser.length)
         shouldStopRef.current = false
 
         // Obtener respuesta de la IA
@@ -213,7 +204,6 @@ export default function useChatMessages () {
 
         // Crear mensaje optimista del asistente
         const assistantMessage = createOptimisticMessage(finalContent, 'assistant', 'guest-ai', conversationId)
-        console.log('🤖 Created guest assistant message:', assistantMessage)
 
         // Agregar mensaje del asistente a los mensajes existentes (que ya incluyen el del usuario)
         const finalMessages = [...messagesWithUser, assistantMessage]
@@ -223,7 +213,6 @@ export default function useChatMessages () {
           typingMessage: '',
           isTyping: false
         })
-        console.log('📝 Added assistant message, total messages:', finalMessages.length)
         await guestSession.incrementMessage()
         return // Salir temprano para guest users
       }

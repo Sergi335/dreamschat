@@ -105,7 +105,7 @@ export function useGuestSession () {
   useEffect(() => {
     if (!isLoaded) return
     if (user) {
-      setLoading(false)
+      setLoading(true)
       setSession(null)
       setError(null)
       return

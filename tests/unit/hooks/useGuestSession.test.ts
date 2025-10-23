@@ -10,6 +10,10 @@ vi.mock('@/lib/fingerprint', () => ({
   getFingerprint: mockGetFingerprint
 }))
 
+vi.mock('@clerk/nextjs', () => ({
+  useUser: () => ({ user: null, isLoaded: true })
+}))
+
 type SessionState = {
   fingerprint: string;
   conversationCount: number;
