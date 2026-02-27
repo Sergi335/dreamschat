@@ -1,35 +1,26 @@
-import { SupabaseClient } from '@supabase/supabase-js'
+import { db } from './db'
+import { conversations, messages } from '@/sql/schema'
+import { eq, desc, asc, inArray } from 'drizzle-orm'
 
 export interface Message {
-  id: string;
-  content: string;
-  role: 'user' | 'assistant';
-  timestamp: Date;
+  id: string
+  content: string
+  role: 'user' | 'assistant'
+  timestamp: Date
 }
 
 export interface Conversation {
-  id: string;
-  title: string;
-  messages: Message[];
-  lastUpdated: Date;
-}
-interface DBConversation {
   id: string
-  user_id: string
   title: string
-  updated_at: string
-}
-
-interface DBMessage {
-  id: string
-  conversation_id: string
-  content: string
-  role: 'user' | 'assistant'
-  timestamp: string
+  messages: Message[]
+  lastUpdated: Date
 }
 
 // Convertir de formato DB a formato de la aplicación
-const convertDbToAppConversation = (dbConversation: DBConversation, dbMessages: DBMessage[]): Conversation => {
+const convertDbToAppConversation = (
+  dbConversation: typeof conversations.$inferSelect,
+  dbMessages: (typeof messages.$inferSelect)[]
+): Conversation => {
   return {
     id: dbConversation.id,
     title: dbConversation.title,
@@ -37,52 +28,46 @@ const convertDbToAppConversation = (dbConversation: DBConversation, dbMessages: 
     messages: dbMessages.map(msg => ({
       id: msg.id,
       content: msg.content,
-      role: msg.role,
+      // Se asegura el tipado de enum
+      role: msg.role as 'user' | 'assistant',
       timestamp: new Date(msg.timestamp)
     }))
   }
 }
 
 // Obtener todas las conversaciones del usuario
-export const getUserConversations = async (
-  supabase: SupabaseClient,
-  userId: string
-): Promise<Conversation[]> => {
+export const getUserConversations = async (userId: string): Promise<Conversation[]> => {
   try {
     // Obtener conversaciones
-    const { data: conversations, error: convError } = await supabase
-      .from('conversations')
-      .select('*')
-      .eq('user_id', userId)
-      .order('updated_at', { ascending: false })
+    const userConversations = await db
+      .select()
+      .from(conversations)
+      .where(eq(conversations.user_id, userId))
+      .orderBy(desc(conversations.updated_at))
 
-    if (convError) throw convError
-
-    if (!conversations || conversations.length === 0) {
+    if (!userConversations || userConversations.length === 0) {
       return []
     }
 
     // Obtener todos los mensajes para estas conversaciones
-    const conversationIds = conversations.map(c => c.id)
-    const { data: messages, error: msgError } = await supabase
-      .from('messages')
-      .select('*')
-      .in('conversation_id', conversationIds)
-      .order('timestamp', { ascending: true })
-
-    if (msgError) throw msgError
+    const conversationIds = userConversations.map(c => c.id)
+    const allMessages = await db
+      .select()
+      .from(messages)
+      .where(inArray(messages.conversation_id, conversationIds))
+      .orderBy(asc(messages.timestamp))
 
     // Agrupar mensajes por conversación
-    const messagesByConversation = (messages || []).reduce((acc, msg) => {
+    const messagesByConversation = allMessages.reduce((acc, msg) => {
       if (!acc[msg.conversation_id]) {
         acc[msg.conversation_id] = []
       }
       acc[msg.conversation_id].push(msg)
       return acc
-    }, {} as Record<string, DBMessage[]>)
+    }, {} as Record<string, typeof messages.$inferSelect[]>)
 
     // Combinar conversaciones con sus mensajes
-    return conversations.map(conv =>
+    return userConversations.map(conv =>
       convertDbToAppConversation(conv, messagesByConversation[conv.id] || [])
     )
   } catch (error) {
@@ -93,23 +78,20 @@ export const getUserConversations = async (
 
 // Crear una nueva conversación
 export const createConversation = async (
-  supabase: SupabaseClient,
   userId: string,
   title: string
 ): Promise<string | null> => {
   try {
-    const { data, error } = await supabase
-      .from('conversations')
-      .insert({
+    const [newConversation] = await db
+      .insert(conversations)
+      .values({
         user_id: userId,
         title,
         updated_at: new Date().toISOString()
       })
-      .select()
-      .single()
+      .returning({ id: conversations.id })
 
-    if (error) throw error
-    return data.id
+    return newConversation.id
   } catch (error) {
     console.error('Error creating conversation:', error)
     return null
@@ -118,20 +100,18 @@ export const createConversation = async (
 
 // Actualizar el título de una conversación
 export const updateConversationTitle = async (
-  supabase: SupabaseClient,
   conversationId: string,
   title: string
 ): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from('conversations')
-      .update({
+    await db
+      .update(conversations)
+      .set({
         title,
         updated_at: new Date().toISOString()
       })
-      .eq('id', conversationId)
+      .where(eq(conversations.id, conversationId))
 
-    if (error) throw error
     return true
   } catch (error) {
     console.error('Error updating conversation title:', error)
@@ -141,32 +121,35 @@ export const updateConversationTitle = async (
 
 // Agregar un mensaje a una conversación
 export const addMessage = async (
-  supabase: SupabaseClient,
   conversationId: string,
   role: 'user' | 'assistant',
   content: string
 ): Promise<string | null> => {
   try {
-    const { data, error } = await supabase
-      .from('messages')
-      .insert({
-        conversation_id: conversationId,
-        role,
-        content,
-        timestamp: new Date().toISOString()
-      })
-      .select()
-      .single()
+    const now = new Date().toISOString()
+    let messageId: string | null = null
 
-    if (error) throw error
+    await db.transaction(async (tx) => {
+      const [newMessage] = await tx
+        .insert(messages)
+        .values({
+          conversation_id: conversationId,
+          role,
+          content,
+          timestamp: now
+        })
+        .returning({ id: messages.id })
 
-    // Actualizar el timestamp de la conversación
-    await supabase
-      .from('conversations')
-      .update({ updated_at: new Date().toISOString() })
-      .eq('id', conversationId)
+      messageId = newMessage.id
 
-    return data.id
+      // Actualizar el timestamp de la conversación
+      await tx
+        .update(conversations)
+        .set({ updated_at: now })
+        .where(eq(conversations.id, conversationId))
+    })
+
+    return messageId
   } catch (error) {
     console.error('Error adding message:', error)
     return null
@@ -174,26 +157,16 @@ export const addMessage = async (
 }
 
 // Eliminar una conversación y todos sus mensajes
-export const deleteConversation = async (
-  supabase: SupabaseClient,
-  conversationId: string
-): Promise<boolean> => {
+export const deleteConversation = async (conversationId: string): Promise<boolean> => {
   try {
-    // Primero eliminar los mensajes
-    const { error: msgError } = await supabase
-      .from('messages')
-      .delete()
-      .eq('conversation_id', conversationId)
+    // Al haber definido onDelete: cascade en schema.ts para messages,
+    // eliminar la conversación eliminará automáticamente los mensajes.
+    // También podemos forzar Borrado de mensajes por si SQLite local no tiene activado el PRAGMA foreign_keys
+    await db.transaction(async (tx) => {
+      await tx.delete(messages).where(eq(messages.conversation_id, conversationId))
+      await tx.delete(conversations).where(eq(conversations.id, conversationId))
+    })
 
-    if (msgError) throw msgError
-
-    // Luego eliminar la conversación
-    const { error: convError } = await supabase
-      .from('conversations')
-      .delete()
-      .eq('id', conversationId)
-
-    if (convError) throw convError
     return true
   } catch (error) {
     console.error('Error deleting conversation:', error)
@@ -203,19 +176,18 @@ export const deleteConversation = async (
 
 // Migrar conversaciones locales a la base de datos
 export const migrateLocalConversations = async (
-  supabase: SupabaseClient,
   userId: string,
   localConversations: Conversation[]
 ): Promise<boolean> => {
   try {
     for (const conv of localConversations) {
       // Crear conversación
-      const conversationId = await createConversation(supabase, userId, conv.title)
+      const conversationId = await createConversation(userId, conv.title)
       if (!conversationId) continue
 
       // Agregar mensajes
       for (const msg of conv.messages) {
-        await addMessage(supabase, conversationId, msg.role, msg.content)
+        await addMessage(conversationId, msg.role, msg.content)
       }
     }
     return true

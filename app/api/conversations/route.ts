@@ -1,19 +1,16 @@
 import { createConversation, getUserConversations } from '@/lib/database'
-import { createSupabaseClient } from '@/lib/supabase-server'
 import { auth } from '@clerk/nextjs/server'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET () {
   try {
     const session = await auth()
-    const { getToken, userId } = session
-    const token = await getToken()
-    if (!userId || !token) {
+    const { userId } = session
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const supabase = createSupabaseClient(token)
-    const conversations = await getUserConversations(supabase, userId)
+    const conversations = await getUserConversations(userId)
 
     return NextResponse.json({ conversations })
   } catch (error: unknown) {
@@ -25,9 +22,8 @@ export async function GET () {
 export async function POST (_request: NextRequest) {
   try {
     const session = await auth()
-    const { getToken, userId } = session
-    const token = await getToken()
-    if (!userId || !token) {
+    const { userId } = session
+    if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -36,8 +32,7 @@ export async function POST (_request: NextRequest) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 })
     }
 
-    const supabase = createSupabaseClient(token)
-    const conversationId = await createConversation(supabase, userId, title)
+    const conversationId = await createConversation(userId, title)
 
     if (!conversationId) {
       return NextResponse.json({ error: 'Failed to create conversation' }, { status: 500 })

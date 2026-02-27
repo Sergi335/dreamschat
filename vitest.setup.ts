@@ -53,40 +53,59 @@ vi.mock('@clerk/nextjs', () => ({
   SignUp: () => null
 }))
 
-// Mock de Supabase
-vi.mock('@/lib/supabase', () => ({
-  supabase: {
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          order: vi.fn(() => ({
-            data: [],
-            error: null
-          }))
+// Mock de Drizzle/Turso
+vi.mock('@/lib/db', () => ({
+  db: {
+    select: vi.fn(() => ({
+      from: vi.fn(() => ({
+        where: vi.fn(() => ({
+          orderBy: vi.fn(() => ({
+            limit: vi.fn(() => [])
+          })),
+          limit: vi.fn(() => [])
+        })),
+        orderBy: vi.fn(() => [])
+      }))
+    })),
+    insert: vi.fn(() => ({
+      values: vi.fn(() => ({
+        returning: vi.fn(() => [{}])
+      }))
+    })),
+    update: vi.fn(() => ({
+      set: vi.fn(() => ({
+        where: vi.fn(() => ({
+          returning: vi.fn(() => [{}])
         }))
-      })),
+      }))
+    })),
+    delete: vi.fn(() => ({
+      where: vi.fn(() => ({
+        returning: vi.fn(() => [{}])
+      }))
+    })),
+    transaction: vi.fn((cb) => cb({
       insert: vi.fn(() => ({
-        select: vi.fn(() => ({
-          single: vi.fn(() => ({
-            data: null,
-            error: null
-          }))
+        values: vi.fn(() => ({
+          returning: vi.fn(() => [{}])
         }))
       })),
       update: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          data: null,
-          error: null
+        set: vi.fn(() => ({
+          where: vi.fn(() => ({}))
         }))
       })),
       delete: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          data: null,
-          error: null
-        }))
+        where: vi.fn(() => ({}))
       }))
     }))
   }
+}))
+
+vi.mock('@/sql/schema', () => ({
+  conversations: { id: 'id', user_id: 'user_id', title: 'title', updated_at: 'updated_at' },
+  messages: { id: 'id', conversation_id: 'conversation_id', content: 'content', role: 'role', timestamp: 'timestamp' },
+  guestSessions: { fingerprint: 'fingerprint', conversation_count: 'conversation_count', message_count: 'message_count', last_activity: 'last_activity' }
 }))
 
 // Mock global de fetch

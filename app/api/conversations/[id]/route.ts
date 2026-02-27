@@ -1,27 +1,25 @@
-import { addMessage, updateConversationTitle } from '@/lib/database'
-import { createSupabaseClient } from '@/lib/supabase-server'
+import { addMessage, updateConversationTitle, deleteConversation } from '@/lib/database'
 import { auth } from '@clerk/nextjs/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { db } from '@/lib/db'
+import { conversations } from '@/sql/schema'
+import { eq, and } from 'drizzle-orm'
 
 export async function POST (
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    const { getToken, userId } = session
-    const token = await getToken()
-    if (!userId || !token) {
+    const { userId } = await auth()
+    const { id: conversationId } = await params
+    if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
-    const supabase = createSupabaseClient(token)
 
     const { role, content } = await request.json()
-    const params = await context.params
-    const conversationId = params.id
 
     if (!role || !content) {
       return NextResponse.json(
@@ -37,7 +35,7 @@ export async function POST (
       )
     }
 
-    const messageId = await addMessage(supabase, conversationId, role, content)
+    const messageId = await addMessage(conversationId, role, content)
 
     if (!messageId) {
       return NextResponse.json(
@@ -52,10 +50,10 @@ export async function POST (
       content,
       timestamp: new Date()
     })
-  } catch (error: unknown) {
+  } catch (error) {
     console.error('Error adding message:', error)
     return NextResponse.json(
-      { error: 'Failed to add message' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
@@ -63,23 +61,20 @@ export async function POST (
 
 export async function PATCH (
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    const { getToken, userId } = session
-    const token = await getToken()
-    if (!userId || !token) {
+    const { userId } = await auth()
+    const { id: conversationId } = await params
+
+    if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
-    const supabase = createSupabaseClient(token)
 
     const { title } = await request.json()
-    const params = await context.params
-    const conversationId = params.id
 
     if (!title) {
       return NextResponse.json(
@@ -88,22 +83,13 @@ export async function PATCH (
       )
     }
 
-    const success = await updateConversationTitle(supabase, conversationId, title)
+    await updateConversationTitle(conversationId, title)
 
-    if (!success) {
-      return NextResponse.json(
-        { error: 'Failed to update conversation' },
-        { status: 500 }
-      )
-    }
-
-    return NextResponse.json({
-      success: true
-    })
-  } catch (error: unknown) {
-    console.error('Error updating conversation:', error)
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Error updating title:', error)
     return NextResponse.json(
-      { error: 'Failed to update conversation' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
@@ -111,65 +97,40 @@ export async function PATCH (
 
 export async function DELETE (
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth()
-    const { getToken, userId } = session
-    const token = await getToken()
-    if (!userId || !token) {
+    const { userId } = await auth()
+    const { id } = await params
+
+    if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
-    const supabase = createSupabaseClient(token)
 
-    const params = await context.params
-    const conversationId = params.id
+    // Verify ownership before deleting
+    const [conversation] = await db
+      .select({ id: conversations.id })
+      .from(conversations)
+      .where(and(eq(conversations.id, id), eq(conversations.user_id, userId)))
+      .limit(1)
 
-    // Verificar que la conversación pertenece al usuario antes de eliminarla
-    const { data: conversation, error: fetchError } = await supabase
-      .from('conversations')
-      .select('user_id')
-      .eq('id', conversationId)
-      .single()
-
-    if (fetchError || !conversation) {
+    if (!conversation) {
       return NextResponse.json(
-        { error: 'Conversation not found' },
+        { error: 'Conversation not found or unauthorized' },
         { status: 404 }
       )
     }
 
-    if (conversation.user_id !== userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 403 }
-      )
-    }
+    await deleteConversation(id)
 
-    // Eliminar la conversación (los mensajes se eliminarán automáticamente por CASCADE)
-    const { error: deleteError } = await supabase
-      .from('conversations')
-      .delete()
-      .eq('id', conversationId)
-
-    if (deleteError) {
-      console.error('Error deleting conversation:', deleteError)
-      return NextResponse.json(
-        { error: 'Failed to delete conversation' },
-        { status: 500 }
-      )
-    }
-
-    return NextResponse.json({
-      success: true
-    })
-  } catch (error: unknown) {
+    return NextResponse.json({ success: true })
+  } catch (error) {
     console.error('Error deleting conversation:', error)
     return NextResponse.json(
-      { error: 'Failed to delete conversation' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

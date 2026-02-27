@@ -1,29 +1,24 @@
 import { POST as sessionPOST } from '@/app/api/guest/session/route'
 import { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { db } from '@/lib/db'
 
-// Simula la función auth de Clerk para evitar el error 'server-only'
-vi.mock('@clerk/nextjs/server', () => ({
-  auth: () =>
-    Promise.resolve({
-      userId: 'user_test_id',
-      getToken: () => Promise.resolve('mock_supabase_token')
-    })
+// Simulación de Drizzle 'db'
+vi.mock('@/lib/db', () => ({
+  db: {
+    select: vi.fn().mockReturnThis(),
+    from: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    insert: vi.fn().mockReturnThis(),
+    values: vi.fn().mockReturnThis(),
+    returning: vi.fn()
+  }
 }))
 
-// Simula el cliente de Supabase para aislar la prueba de la base de datos
-const mockSupabase = {
-  from: vi.fn().mockReturnThis(),
-  select: vi.fn().mockReturnThis(),
-  insert: vi.fn().mockReturnThis(),
-  update: vi.fn().mockReturnThis(),
-  eq: vi.fn().mockReturnThis(),
-  single: vi.fn(),
-  rpc: vi.fn()
-}
-
-vi.mock('@/lib/supabase-server', () => ({
-  createSupabaseClient: () => mockSupabase
+// Mock de @/sql/schema para los tests
+vi.mock('@/sql/schema', () => ({
+  guestSessions: { fingerprint: 'fingerprint', conversation_count: 'conversation_count', message_count: 'message_count', last_activity: 'last_activity' }
 }))
 
 describe('API /api/guest/session', () => {
@@ -35,22 +30,18 @@ describe('API /api/guest/session', () => {
 
   it('debería crear nueva sesión para fingerprint nuevo', async () => {
     // 1. Simula que la sesión NO existe
-    mockSupabase.single.mockResolvedValueOnce({
-      data: null,
-      error: { code: 'PGRST116', message: 'Not found' }
-    })
+    // @ts-ignore
+    db.limit.mockResolvedValueOnce([])
 
-    // 2. Simula la creación exitosa de la sesión
+    // 2. Simula la creación exitosa
     const newSessionData = {
       fingerprint: mockFingerprint,
       conversation_count: 0,
       message_count: 0,
       last_activity: new Date().toISOString()
     }
-    mockSupabase.single.mockResolvedValueOnce({
-      data: newSessionData,
-      error: null
-    })
+    // @ts-ignore
+    db.returning.mockResolvedValueOnce([newSessionData])
 
     const request = new NextRequest('http://localhost/api/guest/session', {
       method: 'POST',
@@ -63,10 +54,7 @@ describe('API /api/guest/session', () => {
     expect(response.status).toBe(200)
     expect(data.fingerprint).toBe(mockFingerprint)
     expect(data.canCreateConversation).toBe(true)
-    expect(mockSupabase.from).toHaveBeenCalledWith('guest_sessions')
-    expect(mockSupabase.insert).toHaveBeenCalledWith(
-      expect.objectContaining({ fingerprint: mockFingerprint })
-    )
+    expect(db.insert).toHaveBeenCalled()
   })
 
   it('debería retornar sesión existente', async () => {
@@ -76,10 +64,8 @@ describe('API /api/guest/session', () => {
       message_count: 2,
       last_activity: new Date().toISOString()
     }
-    mockSupabase.single.mockResolvedValue({
-      data: existingSessionData,
-      error: null
-    })
+    // @ts-ignore
+    db.limit.mockResolvedValueOnce([existingSessionData])
 
     const request = new NextRequest('http://localhost/api/guest/session', {
       method: 'POST',
@@ -92,7 +78,7 @@ describe('API /api/guest/session', () => {
     expect(response.status).toBe(200)
     expect(data.fingerprint).toBe(mockFingerprint)
     expect(data.canSendMessage).toBe(true) // 2 < 3
-    expect(mockSupabase.insert).not.toHaveBeenCalled()
+    expect(db.insert).not.toHaveBeenCalled()
   })
 
   it('debería devolver un error 400 si no se proporciona fingerprint', async () => {
@@ -109,8 +95,8 @@ describe('API /api/guest/session', () => {
   })
 
   it('debería manejar errores de base de datos al buscar sesión', async () => {
-    const dbError = { message: 'Database connection failed' }
-    mockSupabase.single.mockResolvedValue({ data: null, error: dbError })
+    // @ts-ignore
+    db.limit.mockRejectedValueOnce(new Error('Database connection failed'))
 
     const request = new NextRequest('http://localhost/api/guest/session', {
       method: 'POST',

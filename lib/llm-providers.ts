@@ -123,11 +123,12 @@ export const LLM_PROVIDERS: Record<string, LLMProvider> = {
     id: 'gemini',
     name: 'Google Gemini',
     baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai',
-    defaultModel: 'gemini-2.5-flash-lite',
+    defaultModel: 'gemini-2.0-flash',
     availableModels: [
-      'gemini-2.5-flash',
-      'gemini-2.5-flash-lite',
-      'gemini-2.5-pro'
+      'gemini-1.5-flash',
+      'gemini-1.5-pro',
+      'gemini-2.0-flash',
+      'gemini-2.0-pro'
     ],
     apiKeyFormat: 'AIza...',
     requiresApiKey: true,

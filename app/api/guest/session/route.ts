@@ -1,21 +1,10 @@
-import { createSupabaseClient, createSupabaseGuestClient } from '@/lib/supabase-server'
-import { auth } from '@clerk/nextjs/server'
+import { db } from '@/lib/db'
+import { guestSessions } from '@/sql/schema'
+import { eq } from 'drizzle-orm'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST (request: NextRequest) {
   try {
-    const session = await auth()
-    const { getToken } = session
-    const token = await getToken()
-
-    // if (!userId || !token) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    // }
-
-    const supabase = token
-      ? createSupabaseClient(token)
-      : createSupabaseGuestClient()
-
     const { fingerprint } = await request.json()
     console.log('🚀 ~ POST ~ fingerprint:', fingerprint)
 
@@ -27,15 +16,11 @@ export async function POST (request: NextRequest) {
     }
 
     // Buscar sesión existente
-    const { data: existingSession, error: fetchError } = await supabase
-      .from('guest_sessions')
-      .select('*')
-      .eq('fingerprint', fingerprint)
-      .single()
-
-    if (fetchError && fetchError.code !== 'PGRST116') {
-      throw fetchError
-    }
+    const [existingSession] = await db
+      .select()
+      .from(guestSessions)
+      .where(eq(guestSessions.fingerprint, fingerprint))
+      .limit(1)
 
     // Si existe, retornar sesión
     if (existingSession) {
@@ -50,18 +35,16 @@ export async function POST (request: NextRequest) {
     }
 
     // Si no existe, crear nueva sesión
-    const { data: newSession, error: insertError } = await supabase
-      .from('guest_sessions')
-      .insert({
+    const [newSession] = await db
+      .insert(guestSessions)
+      .values({
         fingerprint,
         conversation_count: 0,
         message_count: 0
       })
-      .select()
-      .single()
-    console.log('🚀 ~ POST ~ newSession:', newSession)
+      .returning()
 
-    if (insertError) throw insertError
+    console.log('🚀 ~ POST ~ newSession:', newSession)
 
     return NextResponse.json({
       fingerprint: newSession.fingerprint,

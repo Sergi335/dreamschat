@@ -1,21 +1,10 @@
-import { createSupabaseClient, createSupabaseGuestClient } from '@/lib/supabase-server'
-import { auth } from '@clerk/nextjs/server'
+import { db } from '@/lib/db'
+import { guestSessions } from '@/sql/schema'
+import { eq } from 'drizzle-orm'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST (request: NextRequest) {
   try {
-    const authSession = await auth()
-    const { getToken } = authSession
-    const token = await getToken()
-
-    // if (!userId || !token) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    // }
-
-    const supabase = token
-      ? createSupabaseClient(token)
-      : createSupabaseGuestClient()
-
     const { fingerprint, type } = await request.json()
 
     if (!fingerprint || !type) {
@@ -31,15 +20,15 @@ export async function POST (request: NextRequest) {
         { status: 400 }
       )
     }
-    // Verificar que la sesión existe
-    const { data: session, error: fetchError } = await supabase
-      .from('guest_sessions')
-      .select('*')
-      .eq('fingerprint', fingerprint)
-      .single()
-    console.log('🚀 ~ POST ~ fetchError:', fetchError)
 
-    if (fetchError || !session) {
+    // Verificar que la sesión existe
+    const [session] = await db
+      .select()
+      .from(guestSessions)
+      .where(eq(guestSessions.fingerprint, fingerprint))
+      .limit(1)
+
+    if (!session) {
       return NextResponse.json(
         { error: 'Session not found' },
         { status: 404 }
@@ -49,17 +38,14 @@ export async function POST (request: NextRequest) {
     // Incrementar el contador apropiado
     const field = type === 'conversation' ? 'conversation_count' : 'message_count'
 
-    const { data: updated, error: updateError } = await supabase
-      .from('guest_sessions')
-      .update({
+    const [updated] = await db
+      .update(guestSessions)
+      .set({
         [field]: session[field] + 1,
         last_activity: new Date().toISOString()
       })
-      .eq('fingerprint', fingerprint)
-      .select()
-      .single()
-
-    if (updateError) throw updateError
+      .where(eq(guestSessions.fingerprint, fingerprint))
+      .returning()
 
     return NextResponse.json({
       fingerprint: updated.fingerprint,

@@ -6,7 +6,7 @@ Una aplicación de chat inteligente que soporta múltiples proveedores de modelo
 
 - 🤖 **Multi-LLM Support**: Compatible con 7 proveedores diferentes
 - 🔐 **Autenticación**: Integrado con Clerk para gestión de usuarios
-- 💾 **Persistencia**: Base de datos Supabase para guardar conversaciones
+- 💾 **Persistencia**: Base de datos Turso (SQLite) gestionada con Drizzle ORM
 - ⚡ **Performance**: Componentes optimizados con memoización
 - 🎨 **UI Moderna**: Interfaz oscura con Tailwind CSS
 - 📱 **Responsive**: Funciona en desktop y móvil
@@ -36,9 +36,9 @@ NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
 NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/
 NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/
 
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=tu_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_supabase_anon_key
+# Turso Database Configuration
+TURSO_DATABASE_URL=libsql://tu-db.turso.io
+TURSO_AUTH_TOKEN=tu_auth_token
 
 # LLM Configuration
 # Proveedor: openai, anthropic, groq, together, ollama, perplexity, gemini
@@ -103,7 +103,26 @@ NEXT_PUBLIC_LLM_MODEL=gemini-pro
 LLM_API_KEY=...
 ```
 
-### 3. Configuración de URL Base Personalizada
+### 3. Configuración de Base de Datos (Turso + Drizzle)
+
+Este proyecto utiliza **Drizzle ORM** para gestionar la base de datos en **Turso**.
+
+1. Instala dependencias:
+```bash
+npm install
+```
+
+2. Genera las tablas en tu base de datos Turso:
+```bash
+npm run db:push
+```
+
+3. (Opcional) Visualiza tus datos con Drizzle Studio:
+```bash
+npm run db:studio
+```
+
+### 4. Configuración de URL Base Personalizada
 
 La variable `NEXT_PUBLIC_LLM_BASE_URL` es útil para:
 
@@ -139,34 +158,7 @@ npm install
 
 3. Configura las variables de entorno (ver sección anterior)
 
-4. Configura Supabase:
-```sql
--- Crear tabla de conversaciones
-CREATE TABLE conversations (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  title TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Crear tabla de mensajes
-CREATE TABLE messages (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE,
-  role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
-  content TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Índices para mejor performance
-CREATE INDEX idx_conversations_user_id ON conversations(user_id);
-CREATE INDEX idx_conversations_updated_at ON conversations(updated_at DESC);
-CREATE INDEX idx_messages_conversation_id ON messages(conversation_id);
-CREATE INDEX idx_messages_created_at ON messages(created_at);
-```
-
-5. Ejecuta el proyecto:
+4. Ejecuta el proyecto:
 ```bash
 npm run dev
 ```
@@ -181,7 +173,8 @@ npm run dev
 
 - **Frontend**: Next.js 15 con App Router
 - **Autenticación**: Clerk
-- **Base de Datos**: Supabase PostgreSQL
+- **Base de Datos**: Turso (libsql/SQLite)
+- **ORM**: Drizzle ORM
 - **Estilos**: Tailwind CSS + Shadcn/ui
 - **LLM Integration**: Cliente OpenAI compatible con múltiples proveedores
 
@@ -191,6 +184,12 @@ npm run dev
 - ✅ Scroll throttling para mejor UX
 - ✅ Efectos de escritura optimizados
 - ✅ Renderizado Markdown optimizado con `remarkGfm`
+
+## Scripts de Base de Datos
+
+- `npm run db:generate`: Genera archivos de migración (opcional).
+- `npm run db:push`: Empuja el esquema directamente a la base de datos (recomendado para desarrollo rápido).
+- `npm run db:studio`: Abre una interfaz web para explorar la base de datos.
 
 ## Contribuir
 

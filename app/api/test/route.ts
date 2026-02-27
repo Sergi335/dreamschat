@@ -1,6 +1,8 @@
-import { supabase } from '@/lib/supabase'
+import { db } from '@/lib/db'
+import { conversations } from '@/sql/schema'
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
+import { count, eq } from 'drizzle-orm'
 
 export async function GET () {
   try {
@@ -13,32 +15,19 @@ export async function GET () {
       )
     }
 
-    // Test simple query
-    const { data, error } = await supabase
-      .from('conversations')
-      .select('count')
-      .eq('user_id', userId)
-
-    if (error) {
-      console.error('Supabase error:', error)
-      return NextResponse.json(
-        {
-          error: 'Database error',
-          details: error.message,
-          hint: error.hint,
-          code: error.code
-        },
-        { status: 500 }
-      )
-    }
+    // Test simple query using Drizzle
+    const [result] = await db
+      .select({ value: count() })
+      .from(conversations)
+      .where(eq(conversations.user_id, userId))
 
     return NextResponse.json({
       status: 'ok',
       userId,
-      data,
+      count: result.value,
       env: {
-        url: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + '...',
-        hasKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        url: process.env.TURSO_DATABASE_URL?.substring(0, 30) + '...',
+        hasToken: !!process.env.TURSO_AUTH_TOKEN
       }
     })
   } catch (error: unknown) {
