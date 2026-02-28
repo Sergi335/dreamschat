@@ -6,8 +6,7 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true
   },
-  images: { unoptimized: true },
-  serverExternalPackages: ['@libsql/client']
+  images: { unoptimized: true }
 }
 
 module.exports = withNextIntl(nextConfig)
