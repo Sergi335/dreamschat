@@ -4,7 +4,7 @@ import * as schema from '@/sql/schema'
 const url = process.env.TURSO_DATABASE_URL || 'file:local.db'
 const authToken = process.env.TURSO_AUTH_TOKEN
 
-// Use dynamic requires to prevent Next.js from tracing and bundling native modules 
+// Use dynamic requires to prevent Next.js from tracing and bundling native modules
 // that are not needed as dependencies in all environments.
 function createLibsqlClient () {
   if (url.startsWith('file:')) {
