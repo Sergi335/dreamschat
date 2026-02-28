@@ -7,13 +7,7 @@ const nextConfig = {
     ignoreDuringBuilds: true
   },
   images: { unoptimized: true },
-  serverExternalPackages: ['@libsql/client'],
-  output: 'standalone',
-  experimental: {
-    outputFileTracingIncludes: {
-      '/*': ['./node_modules/@libsql/linux-x64-gnu/**/*']
-    }
-  }
+  serverExternalPackages: ['@libsql/client']
 }
 
 module.exports = withNextIntl(nextConfig)
