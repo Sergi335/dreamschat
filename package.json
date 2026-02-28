@@ -119,5 +119,9 @@
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
+  },
+  "optionalDependencies": {
+    "@libsql/linux-x64-gnu": "0.5.22",
+    "@libsql/linux-x64-musl": "0.5.22"
   }
 }
