@@ -2,6 +2,8 @@ import { createConversation, getUserConversations } from '@/lib/database'
 import { auth } from '@clerk/nextjs/server'
 import { NextRequest, NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET () {
   try {
     const session = await auth()

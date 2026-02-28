@@ -5,6 +5,8 @@ import { db } from '@/lib/db'
 import { conversations } from '@/sql/schema'
 import { eq, and } from 'drizzle-orm'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST (
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

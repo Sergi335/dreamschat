@@ -4,6 +4,8 @@ import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { count, eq } from 'drizzle-orm'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET () {
   try {
     const { userId } = await auth()
